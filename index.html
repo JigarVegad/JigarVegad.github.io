@@ -3,428 +3,604 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MobilityMetric — US signalized intersections</title>
-<meta name="description" content="Search any of 225 US cities and preview real signalized-intersection data on a map: signal type, approach geometry, speed limits, ADA flags, and confidence. A live sample from an OpenStreetMap-derived dataset.">
+<title>MobilityMetric — signalized intersections from OpenStreetMap</title>
+<meta name="description" content="One clean record per real signalized intersection across 225 US cities and 271 European cities — extracted, deduplicated and classified from OpenStreetMap. Search any city and preview 1,000 real intersections on a live map.">
+<meta property="og:title" content="MobilityMetric — signalized intersections from OpenStreetMap">
+<meta property="og:description" content="One clean record per real intersection across the US and Europe. Search any city, see 1,000 real intersections on a live map, download GeoJSON or CSV.">
+<meta property="og:type" content="website">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 <style>
-  :root{
-    --ink:#0E1116; --panel:#161B22; --panel-2:#1C232D; --line:#243040;
-    --text:#E6EDF3; --muted:#8B99A6; --muted-2:#5E6B78;
-    --amber:#FFB224; --amber-dim:#3a2f16;
-    --veh:#FFB224; --ped:#35C4D6; --both:#46C06A; --hawk:#E0607E; --lvl:#E5484D; --unk:#8B99A6;
-    --rail:360px;
-    --f-display:"Space Grotesk",system-ui,sans-serif;
-    --f-ui:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0;background:var(--ink);color:var(--text);
-    font-family:var(--f-ui);font-size:14px;line-height:1.5;
-    font-feature-settings:"tnum" 1,"cv05" 1;
-    -webkit-font-smoothing:antialiased;overflow:hidden;
-  }
-  button{font-family:inherit}
-  a{color:var(--amber);text-decoration:none}
+/* ── Bright airy paper; colour comes from the signal taxonomy (amber/cyan/green/pink/red).
+      Signature = a deep-ink live map panel alive with multicolour intersection dots. ── */
+:root{
+  --bg:#F2F4F8; --paper:#FFFFFF; --ink:#13141C; --muted:#585A69; --faint:#8A8C9B; --line:#E4E7EF;
+  --veh:#F59E0B; --ped:#06B6D4; --both:#10B981; --hawk:#EC4899; --lvl:#EF4444; --unk:#8A8C9B;
+  --ink-panel:#111226; --ink-panel-2:#191a36;
+  --font-display:"Bricolage Grotesque",Georgia,serif;
+  --font-body:"Hanken Grotesk",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;text-wrap:balance;margin:0}
+.eyebrow{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.tnum{font-variant-numeric:tabular-nums}
+button{font-family:inherit}
 
-  /* ---------- top bar ---------- */
-  header{
-    height:56px;display:flex;align-items:center;gap:16px;
-    padding:0 18px;border-bottom:1px solid var(--line);background:var(--panel);
-    position:relative;z-index:1200;
-  }
-  .brand{display:flex;align-items:baseline;gap:10px;min-width:0}
-  .brand b{font-family:var(--f-display);font-weight:700;font-size:19px;letter-spacing:-.01em}
-  .brand b span{color:var(--amber)}
-  .brand small{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .spacer{flex:1}
-  .req{
-    display:inline-flex;align-items:center;height:34px;padding:0 15px;border-radius:8px;
-    background:var(--amber);color:#17130a;font-weight:600;font-size:13px;border:0;cursor:pointer;
-  }
-  .req:hover{filter:brightness(1.07)}
+/* nav */
+header{position:sticky;top:0;z-index:1000;background:#F2F4F8d9;backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:22px;height:64px}
+.brand{font-family:var(--font-display);font-weight:700;font-size:1.25rem;letter-spacing:-.03em}
+.brand i{font-style:normal;color:var(--veh)}
+.nav .links{display:flex;gap:22px;margin-left:12px}
+.nav .links a{font-size:.92rem;color:var(--muted)}
+.nav .links a:hover{color:var(--ink)}
+.nav .sp{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:12px;font-weight:600;font-size:.95rem;border:1px solid transparent;cursor:pointer;transition:transform .15s ease,box-shadow .2s ease,border-color .2s ease}
+.btn-primary{background:var(--ink);color:#fff}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-amber{background:var(--veh);color:#241603;box-shadow:0 8px 22px -8px var(--veh)}
+.btn-amber:hover{transform:translateY(-1px)}
+.btn-ghost{background:var(--paper);border-color:var(--line);color:var(--ink)}
+.btn-ghost:hover{border-color:#cfd3df}
+.nav .btn{height:40px}
+@media(max-width:720px){.nav .links{display:none}}
 
-  /* ---------- app shell ---------- */
-  .app{display:flex;height:calc(100vh - 56px);height:calc(100dvh - 56px)}
-  aside{
-    width:var(--rail);min-width:var(--rail);height:100%;overflow-y:auto;
-    border-right:1px solid var(--line);background:var(--panel);
-    display:flex;flex-direction:column;
-  }
-  .map-wrap{flex:1;position:relative;min-width:0}
-  #map{position:absolute;inset:0;background:#0b0e12}
+/* hero */
+.hero{padding-block:54px 40px}
+.hero-grid{display:grid;grid-template-columns:1.02fr 1fr;gap:48px;align-items:center}
+.hero h1{font-size:clamp(2.5rem,5.4vw,4.3rem);line-height:1.02}
+.hero .lead{color:var(--muted);font-size:1.12rem;max-width:42ch;margin:20px 0 26px}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:26px}
+.chip-s{display:inline-flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.dot{width:9px;height:9px;border-radius:50%}
+.panel{position:relative;border-radius:22px;overflow:hidden;background:radial-gradient(130% 120% at 30% 0%,var(--ink-panel-2),var(--ink-panel));box-shadow:0 40px 80px -40px rgba(17,18,38,.55),0 2px 0 rgba(255,255,255,.4) inset;aspect-ratio:1/1;min-height:340px}
+.panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.panel .badge{position:absolute;left:16px;bottom:14px;z-index:2;display:flex;gap:7px;align-items:center;color:#cfd2ea;font-size:.76rem;background:#ffffff14;border:1px solid #ffffff22;padding:5px 11px;border-radius:999px;backdrop-filter:blur(6px)}
+.panel .live{width:7px;height:7px;border-radius:50%;background:var(--both);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 #10b98188}70%{box-shadow:0 0 0 7px #10b98100}100%{box-shadow:0 0 0 0 #10b98100}}
+@media(max-width:860px){.hero-grid{grid-template-columns:1fr;gap:30px}.panel{order:-1}}
 
-  /* ---------- control rail ---------- */
-  .rail-pad{padding:18px 18px 10px}
-  .field{margin-bottom:14px}
-  label.lab{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-  select,input[type=search]{
-    width:100%;height:40px;padding:0 12px;border-radius:9px;border:1px solid var(--line);
-    background:var(--panel-2);color:var(--text);font-family:inherit;font-size:14px;appearance:none;
-  }
-  select:focus,input:focus,button:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
-  .select-wrap{position:relative}
-  .select-wrap::after{content:"";position:absolute;right:13px;top:16px;width:8px;height:8px;
-    border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);pointer-events:none}
+/* stat band */
+.stats{padding-block:30px 10px}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px}
+.stat .n{font-family:var(--font-display);font-weight:700;font-size:clamp(1.8rem,3.4vw,2.7rem);line-height:1;letter-spacing:-.02em}
+.stat .l{color:var(--muted);font-size:.86rem;margin-top:7px}
+.s-veh{color:var(--veh)}.s-ped{color:var(--ped)}.s-both{color:var(--both)}.s-hawk{color:var(--hawk)}
+@media(max-width:720px){.stat-row{grid-template-columns:1fr 1fr}}
 
-  .types{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{
-    display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;
-    border:1px solid var(--line);background:var(--panel-2);color:var(--muted);cursor:pointer;font-size:12.5px;user-select:none;
-  }
-  .chip .dot{width:9px;height:9px;border-radius:50%}
-  .chip[aria-pressed=true]{color:var(--text);border-color:var(--muted-2);background:#222b36}
+/* sections */
+section.band{padding-block:56px}
+.sec-head{max-width:46ch}
+.sec-head h2{font-size:clamp(1.7rem,3.3vw,2.5rem);margin:.5rem 0 0}
+.sec-head p.lead{color:var(--muted);font-size:1.05rem;margin:.9rem 0 0}
 
-  details.adv{border-top:1px solid var(--line);margin-top:4px}
-  details.adv summary{list-style:none;cursor:pointer;padding:12px 0 10px;color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:8px}
-  details.adv summary::-webkit-details-marker{display:none}
-  details.adv summary .tw{width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
-  details.adv[open] summary .tw{transform:rotate(45deg)}
-  .adv-body{padding-bottom:6px}
-  .range-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-  .range-row b{font-weight:600}
-  input[type=range]{width:100%;accent-color:var(--amber)}
-  .hint{color:var(--muted-2);font-size:11.5px;margin-top:3px}
+/* problem */
+.prob{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center;margin-top:26px}
+.codecard{background:var(--ink-panel);color:#c9ccea;border-radius:16px;padding:18px 20px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem;line-height:1.7;overflow-x:auto}
+.codecard .mut{color:#6f73a6}
+.codecard .arrow{display:block;color:var(--veh);margin:10px 0}
+.codecard .ok{color:var(--both)}
+@media(max-width:800px){.prob{grid-template-columns:1fr}}
 
-  .run{
-    width:100%;height:44px;border-radius:10px;border:0;cursor:pointer;margin-top:4px;
-    background:var(--amber);color:#17130a;font-weight:600;font-size:15px;font-family:var(--f-display);
-    display:flex;align-items:center;justify-content:center;gap:10px;
-  }
-  .run:hover{filter:brightness(1.07)}
-  .run:disabled{opacity:.55;cursor:default;filter:none}
-  .spin{width:16px;height:16px;border:2px solid #17130a55;border-top-color:#17130a;border-radius:50%;animation:spin .7s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
+/* products */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:24px;position:relative;overflow:hidden;transition:transform .2s ease,box-shadow .25s ease}
+.card:hover{transform:translateY(-3px);box-shadow:0 24px 50px -30px rgba(20,22,40,.4)}
+.card .rail{position:absolute;left:0;top:0;bottom:0;width:4px}
+.card .tag{font-size:.76rem;color:var(--faint);font-weight:600}
+.card h3{font-size:1.35rem;margin:.5rem 0 .2rem}
+.card .big{font-family:var(--font-display);font-weight:700;font-size:2.6rem;line-height:1;margin:.5rem 0}
+.card .big span{font-size:.9rem;color:var(--muted);font-family:var(--font-body);font-weight:500}
+.card p.d{color:var(--muted);font-size:.92rem;margin:.4rem 0 0}
+@media(max-width:800px){.cards{grid-template-columns:1fr}}
 
-  /* ---------- results ---------- */
-  .result-head{padding:14px 18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--panel-2)}
-  .count{font-family:var(--f-display);font-size:26px;font-weight:700;line-height:1;letter-spacing:-.02em}
-  .count span{color:var(--amber)}
-  .sub{color:var(--muted);font-size:12.5px;margin-top:5px}
-  .dl{display:flex;gap:8px;margin-top:12px}
-  .dl button{flex:1;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:12.5px;cursor:pointer}
-  .dl button:hover{border-color:var(--muted-2);background:#222b36}
-  .dl button:disabled{opacity:.4;cursor:default}
+/* proof */
+.acc{width:100%;border-collapse:collapse;margin-top:22px;background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.acc th,.acc td{text-align:left;padding:14px 18px;border-bottom:1px solid var(--line);font-size:.95rem}
+.acc th{background:#fafbfd;color:var(--muted);font-weight:600;font-size:.82rem;letter-spacing:.02em}
+.acc td.diff{font-weight:700;color:var(--both);text-align:right;font-variant-numeric:tabular-nums}
+.acc td:nth-child(2),.acc td:nth-child(3),.acc th:nth-child(2),.acc th:nth-child(3),.acc th:nth-child(4){text-align:right}
 
-  .list{flex:1;overflow-y:auto;min-height:80px}
-  .row{padding:11px 18px;border-bottom:1px solid #1b2230;cursor:pointer;display:flex;gap:11px;align-items:flex-start}
-  .row:hover{background:var(--panel-2)}
-  .row.active{background:#222b36;box-shadow:inset 3px 0 0 var(--amber)}
-  .row .mk{width:10px;height:10px;border-radius:50%;margin-top:4px;flex:none}
-  .row .meta{min-width:0;flex:1}
-  .row .st{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .row .sub2{color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .row .cf{font-size:11px;color:var(--muted-2);flex:none;margin-top:2px}
+/* ── live explorer ── */
+.explorer{margin-top:30px;display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:stretch}
+@media(max-width:900px){.explorer{grid-template-columns:1fr}}
+.ctl{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.region{display:flex;gap:4px;background:#eef1f7;border:1px solid var(--line);border-radius:12px;padding:4px}
+.region button{flex:1;height:38px;border:0;background:transparent;border-radius:9px;color:var(--muted);font-weight:600;font-size:.92rem;cursor:pointer;transition:background .15s,color .15s}
+.region button[aria-pressed=true]{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(20,22,40,.12)}
+.lab{display:block;font-size:.78rem;color:var(--muted);margin-bottom:6px;font-weight:600}
+.select-wrap{position:relative}
+select,input[type=search]{width:100%;height:42px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-family:inherit;font-size:.95rem;appearance:none}
+select:focus,input:focus,button:focus-visible{outline:2px solid var(--veh);outline-offset:1px}
+.select-wrap::after{content:"";position:absolute;right:14px;top:17px;width:8px;height:8px;border-right:2px solid var(--faint);border-bottom:2px solid var(--faint);transform:rotate(45deg);pointer-events:none}
+.types{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer;font-size:.8rem;user-select:none}
+.chip .dot{width:9px;height:9px;border-radius:50%}
+.chip[aria-pressed=true]{color:var(--ink);border-color:#cfd3df;background:var(--paper)}
+details.adv summary{list-style:none;cursor:pointer;color:var(--muted);font-size:.82rem;display:flex;align-items:center;gap:8px;font-weight:600}
+details.adv summary::-webkit-details-marker{display:none}
+details.adv summary .tw{width:7px;height:7px;border-right:2px solid var(--faint);border-bottom:2px solid var(--faint);transform:rotate(-45deg);transition:transform .15s}
+details.adv[open] summary .tw{transform:rotate(45deg)}
+.range-row{display:flex;align-items:center;justify-content:space-between;margin:10px 0 2px}
+.range-row b{font-weight:700}
+input[type=range]{width:100%;accent-color:var(--veh)}
+.hint{color:var(--faint);font-size:.72rem;margin-top:3px}
+.run{width:100%;height:46px;border-radius:12px;border:0;cursor:pointer;background:var(--veh);color:#241603;font-weight:700;font-size:1rem;font-family:var(--font-display);display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 8px 22px -8px var(--veh)}
+.run:hover{filter:brightness(1.04)}
+.run:disabled{opacity:.6;cursor:default;filter:none;box-shadow:none}
+.spin{width:16px;height:16px;border:2px solid #24160355;border-top-color:#241603;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.result-head{border-top:1px solid var(--line);padding-top:14px}
+.count{font-family:var(--font-display);font-size:1.9rem;font-weight:700;line-height:1;letter-spacing:-.02em}
+.count span{color:var(--veh)}
+.sub{color:var(--muted);font-size:.82rem;margin-top:5px}
+.dl{display:flex;gap:8px;margin-top:12px}
+.dl button{flex:1;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:.82rem;cursor:pointer}
+.dl button:hover{border-color:#cfd3df}
+.dl button:disabled{opacity:.45;cursor:default}
+.err{margin-top:10px;padding:11px 13px;border:1px solid #f3c6c6;background:#fdeeee;color:#b4332f;border-radius:10px;font-size:.82rem;display:none}
+.legend{margin-top:4px;color:var(--muted);font-size:.74rem;display:flex;flex-wrap:wrap;gap:4px 14px}
+.legend .lg{display:flex;align-items:center;gap:6px}
 
-  .legend{padding:12px 18px 18px;border-top:1px solid var(--line);color:var(--muted);font-size:11.5px}
-  .legend .lg{display:flex;align-items:center;gap:7px;margin-top:6px}
-  .legend .lg .dot{width:9px;height:9px;border-radius:50%}
-  .foot{padding:14px 18px 22px;color:var(--muted-2);font-size:11px;border-top:1px solid var(--line);line-height:1.6}
-  .foot a{color:var(--muted)}
+.mapcol{display:flex;flex-direction:column;gap:12px;min-height:520px}
+.mappanel{position:relative;flex:1;border-radius:18px;overflow:hidden;background:var(--ink-panel);box-shadow:0 40px 80px -46px rgba(17,18,38,.55);min-height:420px}
+#map{position:absolute;inset:0;background:#0d0e1c}
+.veil{position:absolute;inset:0;background:#0d0e1ccc;display:none;align-items:center;justify-content:center;z-index:800;color:#aab;font-size:.85rem;gap:10px}
+.veil.on{display:flex}
+.veil .spin{border-color:#ffffff33;border-top-color:var(--veh)}
+.maphint{position:absolute;right:12px;top:12px;z-index:700;color:#aab;font-size:.7rem;background:#ffffff14;border:1px solid #ffffff22;padding:4px 9px;border-radius:999px;backdrop-filter:blur(6px);pointer-events:none;transition:opacity .3s}
+.rowlist{max-height:170px;overflow-y:auto;background:var(--paper);border:1px solid var(--line);border-radius:14px}
+.row{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:11px;align-items:flex-start}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--bg)}
+.row.active{background:#fff7ec;box-shadow:inset 3px 0 0 var(--veh)}
+.row .mk{width:10px;height:10px;border-radius:50%;margin-top:4px;flex:none}
+.row .meta{min-width:0;flex:1}
+.row .st{font-weight:600;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .sub2{color:var(--muted);font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .cf{font-size:.72rem;color:var(--faint);flex:none;margin-top:2px}
 
-  /* ---------- detail popup ---------- */
-  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px #0008}
-  .leaflet-popup-tip{background:var(--panel);border:1px solid var(--line)}
-  .leaflet-popup-content{margin:13px 15px;font-family:var(--f-ui);width:260px!important}
-  .pop h4{margin:0 0 2px;font-family:var(--f-display);font-size:15px}
-  .pop .pid{color:var(--muted-2);font-size:10.5px;margin-bottom:9px;word-break:break-all}
-  .pop .kv{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid #1b2230;font-size:12px}
-  .pop .kv span:first-child{color:var(--muted)}
-  .pop .kv span:last-child{text-align:right}
-  .pop .appr{margin-top:8px;border-top:1px solid #1b2230;padding-top:7px}
-  .pop .appr .a{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);padding:2px 0}
-  .pop .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:600;color:#17130a}
+/* dark popups on the ink map */
+.leaflet-popup-content-wrapper{background:var(--ink-panel-2);color:#e7e9f6;border:1px solid #2a2c52;border-radius:12px;box-shadow:0 18px 40px #0007}
+.leaflet-popup-tip{background:var(--ink-panel-2);border:1px solid #2a2c52}
+.leaflet-popup-content{margin:13px 15px;font-family:var(--font-body);width:248px!important}
+.pop h4{margin:0 0 2px;font-family:var(--font-display);font-size:.95rem}
+.pop .pid{color:#7a7ca8;font-size:.64rem;margin-bottom:9px;word-break:break-all}
+.pop .kv{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid #2a2c52;font-size:.75rem}
+.pop .kv span:first-child{color:#9a9cc4}
+.pop .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.64rem;font-weight:700;color:#17130a}
 
-  .err{margin:10px 18px;padding:11px 13px;border:1px solid #5a2b2b;background:#2a1718;color:#ffb3b3;border-radius:9px;font-size:12.5px;display:none}
+/* final cta */
+.final{background:var(--ink-panel);border-radius:24px;padding:48px 40px;text-align:center;color:#fff;position:relative;overflow:hidden}
+.final h2{font-size:clamp(1.8rem,3.4vw,2.6rem);color:#fff}
+.final p{color:#b9bce0;max-width:52ch;margin:14px auto 24px}
+.final .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.final canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.5}
+.final .inner{position:relative;z-index:2}
 
-  /* loading veil on map */
-  .veil{position:absolute;inset:0;background:#0b0e12cc;display:none;align-items:center;justify-content:center;z-index:800;color:var(--muted);font-size:13px;gap:10px}
-  .veil.on{display:flex}
-  .veil .spin{border-color:#8b99a655;border-top-color:var(--amber)}
+footer{padding-block:34px;color:var(--faint);font-size:.86rem;border-top:1px solid var(--line);margin-top:20px}
+.foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 
-  .ghost{display:inline-flex;align-items:center;height:34px;padding:0 13px;border-radius:8px;background:transparent;color:var(--muted);border:1px solid var(--line);font-size:13px;cursor:pointer;margin-right:8px}
-  .ghost:hover{color:var(--text);border-color:var(--muted-2)}
-  .modal{position:fixed;inset:0;z-index:2000;display:none;align-items:flex-start;justify-content:center;background:#060809e0;padding:40px 16px;overflow-y:auto}
-  .modal.on{display:flex}
-  .sheet{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:660px;width:100%;padding:30px 30px 34px;box-shadow:0 30px 80px #000a}
-  .sheet .x{position:absolute;top:16px;right:18px;height:30px;margin:0}
-  .sheet h2{font-family:var(--f-display);font-weight:700;font-size:24px;letter-spacing:-.02em;margin:0 0 6px}
-  .sheet .lead{color:var(--muted);font-size:14.5px;line-height:1.6;margin:0 0 6px;max-width:60ch}
-  .sheet h3{font-family:var(--f-display);font-size:13px;font-weight:600;color:var(--amber);margin:24px 0 10px}
-  .steps{list-style:none;counter-reset:s;margin:0;padding:0}
-  .steps li{counter-increment:s;position:relative;padding:0 0 11px 32px;color:var(--text);font-size:13.5px;line-height:1.5}
-  .steps li::before{content:counter(s);position:absolute;left:0;top:-1px;width:21px;height:21px;border-radius:6px;background:var(--amber-dim);color:var(--amber);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
-  table.acc{width:100%;border-collapse:collapse;font-size:13px;margin-top:2px}
-  table.acc th,table.acc td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
-  table.acc th{color:var(--muted);font-weight:500;font-size:11.5px}
-  table.acc td:last-child,table.acc th:last-child,table.acc td:nth-child(2),table.acc th:nth-child(2),table.acc td:nth-child(3),table.acc th:nth-child(3){text-align:right}
-  .fields{color:var(--muted);font-size:13px;line-height:1.7;margin:0}
-  .fields b{color:var(--text);font-weight:600}
-  .who{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.6}
-  .who b{color:var(--text)}
-  .cta2{margin-top:16px}
-  @media (max-width:560px){.req,.ghost{height:30px;font-size:12px;padding:0 10px}.brand b{font-size:16px}.sheet{padding:24px 20px 28px}}
-  /* mobile toggle */
-  .railtoggle{display:none}
-  @media (max-width:820px){
-    body{overflow:auto}
-    .app{flex-direction:column;height:auto}
-    aside{width:100%;min-width:0;border-right:0;border-bottom:1px solid var(--line);max-height:none}
-    .map-wrap{height:62vh;height:62dvh;flex:none}
-    .brand small{display:none}
-    .list{max-height:300px}
-  }
-  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* about modal */
+.modal{position:fixed;inset:0;z-index:2000;display:none;align-items:flex-start;justify-content:center;background:#13141cc0;padding:40px 16px;overflow-y:auto;backdrop-filter:blur(4px)}
+.modal.on{display:flex}
+.sheet{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:20px;max-width:640px;width:100%;padding:32px 32px 36px;box-shadow:0 40px 100px -30px rgba(20,22,40,.5)}
+.sheet .x{position:absolute;top:16px;right:18px;height:34px}
+.sheet h2{font-size:1.6rem;margin:0 0 6px}
+.sheet .lead{color:var(--muted);font-size:1rem;line-height:1.6;margin:0 0 6px;max-width:62ch}
+.sheet h3{font-size:.82rem;font-weight:700;color:var(--veh);text-transform:uppercase;letter-spacing:.1em;margin:24px 0 10px}
+.steps{list-style:none;counter-reset:s;margin:0;padding:0}
+.steps li{counter-increment:s;position:relative;padding:0 0 11px 34px;font-size:.92rem;line-height:1.5}
+.steps li::before{content:counter(s);position:absolute;left:0;top:-1px;width:22px;height:22px;border-radius:7px;background:#fde8c8;color:#b4740a;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.fields{color:var(--muted);font-size:.92rem;line-height:1.7;margin:0}
+.fields b{color:var(--ink);font-weight:600}
+.who{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:.92rem;line-height:1.6}
+.who b{color:var(--ink)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
 </style>
 </head>
 <body>
+
 <header>
-  <div class="brand">
-    <b>Mobility<span>Metric</span></b>
-    <small>Signalized intersections, from OpenStreetMap</small>
+  <div class="wrap nav">
+    <div class="brand">Mobility<i>Metric</i></div>
+    <nav class="links">
+      <a href="#products">Datasets</a>
+      <a href="#proof">Accuracy</a>
+      <a href="#explore">Live map</a>
+    </nav>
+    <div class="sp"></div>
+    <button class="btn btn-ghost" id="aboutBtn">About</button>
+    <a class="btn btn-amber" href="#explore">Open live map</a>
   </div>
-  <div class="spacer"></div>
-  <button class="ghost" id="aboutBtn">About</button>
-  <button class="req" id="reqTop">Request full dataset</button>
 </header>
 
-<div class="app">
-  <aside>
-    <div class="rail-pad">
-      <div class="field">
-        <label class="lab" for="city">Search a US city</label>
-        <div class="select-wrap">
-          <select id="city" aria-label="City"></select>
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">OpenStreetMap · extracted · deduplicated · classified</p>
+      <h1>From a continent to a single intersection.</h1>
+      <p class="lead">One clean record per real signalized intersection — across 225 cities in the US and 271 in Europe — classified, deduplicated and ready for simulation, V2X and HD maps.</p>
+      <div class="hero-cta">
+        <a class="btn btn-amber" href="#explore">Explore the live map</a>
+        <a class="btn btn-ghost" href="#products">See coverage</a>
+      </div>
+      <div class="chips">
+        <span class="chip-s"><span class="dot" style="background:var(--veh)"></span>Vehicular</span>
+        <span class="chip-s"><span class="dot" style="background:var(--ped)"></span>Pedestrian</span>
+        <span class="chip-s"><span class="dot" style="background:var(--both)"></span>Both</span>
+        <span class="chip-s"><span class="dot" style="background:var(--hawk)"></span>HAWK</span>
+        <span class="chip-s"><span class="dot" style="background:var(--lvl)"></span>Level crossing</span>
+      </div>
+    </div>
+    <div class="panel">
+      <canvas id="field"></canvas>
+      <div class="badge"><span class="live"></span><span id="heroBadge">496 cities · US + Europe</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="wrap stat-row">
+    <div class="stat"><div class="n tnum s-veh" data-to="170000" data-suffix="+">170,000+</div><div class="l">US intersections</div></div>
+    <div class="stat"><div class="n tnum s-ped" data-to="496">496</div><div class="l">cities, US + Europe</div></div>
+    <div class="stat"><div class="n tnum s-both" data-to="41" data-suffix="">41</div><div class="l">European countries</div></div>
+    <div class="stat"><div class="n tnum s-hawk" data-to="0" data-suffix="%">0%</div><div class="l">LA vs. LADOT count</div></div>
+  </div>
+</section>
+
+<section class="band" id="problem">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">The problem</p>
+      <h2>Raw OpenStreetMap is a cloud of poles. We turn it into intersections.</h2>
+    </div>
+    <div class="prob">
+      <p class="lead" style="color:var(--muted)">A single junction holds several signal poles, tagged inconsistently, with no deduplication and no classification. Our pipeline clusters the poles, merges divided-road duplicates, classifies the signal type, and emits one clean record per real intersection — with a nearest street and a confidence score.</p>
+      <div class="codecard">
+<span class="mut">node 653656  highway=traffic_signals</span>
+<span class="mut">node 653688  highway=traffic_signals</span>
+<span class="mut">node 653701  crossing=traffic_signals</span>
+<span class="mut">  ⋮   several poles, one junction</span>
+<span class="arrow">──── cluster · merge · classify ────▶</span>
+{ <span class="ok">"intersection_id"</span>: "US-CA-SOCAL-LOS-9q5ctr1p",
+  <span class="ok">"signal_type"</span>: "vehicular_junction",
+  <span class="ok">"approach_count"</span>: 4, <span class="ok">"nearest_street"</span>: "Wilshire Blvd" }
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="products" style="background:var(--paper);border-block:1px solid var(--line)">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Two live datasets, one pipeline</p>
+      <h2>Pick your coverage.</h2>
+    </div>
+    <div class="cards">
+      <article class="card"><div class="rail" style="background:var(--veh)"></div>
+        <p class="tag">US · 50 states + DC</p><h3>US Traffic Signals</h3>
+        <p class="big tnum">225<span> cities</span></p>
+        <p class="d">~170,000 signalized intersections, classified by type with nearest-street enrichment and official-figure fusion.</p>
+      </article>
+      <article class="card"><div class="rail" style="background:var(--ped)"></div>
+        <p class="tag">Europe · 41 countries</p><h3>EU Traffic Signals</h3>
+        <p class="big tnum">271<span> cities</span></p>
+        <p class="d">Deduplicated intersection centroids with nearest street and a confidence score, boundary-clipped to real city limits.</p>
+      </article>
+      <article class="card"><div class="rail" style="background:var(--both)"></div>
+        <p class="tag">Europe · 12 countries</p><h3>EU LEZ Intelligence</h3>
+        <p class="big tnum">94<span> zones</span></p>
+        <p class="d">Low Emission Zone polygons with rules, areas and route-compliance evaluation. Available on request.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="proof">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Proof</p>
+      <h2>It tracks the official city figures.</h2>
+      <p class="lead">Vehicular signalized-intersection counts land within a few percent of what city transportation departments publish.</p>
+    </div>
+    <table class="acc">
+      <thead><tr><th>City</th><th>Official DOT</th><th>This dataset</th><th>Difference</th></tr></thead>
+      <tbody>
+        <tr><td>Los Angeles</td><td>~4,850 (LADOT)</td><td class="tnum">4,856</td><td class="diff">0%</td></tr>
+        <tr><td>New York</td><td>~13,770 (NYCDOT)</td><td class="tnum">13,198</td><td class="diff">−4%</td></tr>
+        <tr><td>Chicago</td><td>~2,900 (CDOT)</td><td class="tnum">2,988</td><td class="diff">+3%</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="band" id="explore">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Feel the data</p>
+      <h2>Search any city. See 1,000 real intersections.</h2>
+      <p class="lead">Pick a region and a city, run a free sample, and inspect every intersection on the map — then download it as GeoJSON or CSV.</p>
+    </div>
+
+    <div class="explorer">
+      <div class="ctl">
+        <div class="region" id="region" role="tablist" aria-label="Region">
+          <button data-r="US" aria-pressed="true">United States</button>
+          <button data-r="EU" aria-pressed="false">Europe</button>
         </div>
-      </div>
-
-      <div class="field">
-        <label class="lab">Signal types</label>
-        <div class="types" id="types"></div>
-      </div>
-
-      <details class="adv">
-        <summary><span class="tw"></span>Advanced options</summary>
-        <div class="adv-body">
-          <div class="field">
+        <div>
+          <label class="lab" for="city" id="cityLab">Search a US city</label>
+          <div class="select-wrap"><select id="city" aria-label="City"></select></div>
+        </div>
+        <div>
+          <label class="lab">Signal types</label>
+          <div class="types" id="types"></div>
+        </div>
+        <details class="adv">
+          <summary><span class="tw"></span>Advanced options</summary>
+          <div>
             <div class="range-row"><span class="lab" style="margin:0">Minimum confidence</span><b id="confVal">0%</b></div>
             <input type="range" id="conf" min="0" max="100" step="5" value="0">
             <div class="hint">Drop intersections the data is less sure about.</div>
-          </div>
-          <div class="field">
             <div class="range-row"><span class="lab" style="margin:0">Cluster radius</span><b id="radVal">40 m</b></div>
             <input type="range" id="rad" min="20" max="90" step="5" value="40">
             <div class="hint">How close signals group into one intersection.</div>
           </div>
+        </details>
+        <button class="run" id="run">Run sample</button>
+        <div class="err" id="err"></div>
+        <div class="result-head">
+          <div class="count" id="count">—</div>
+          <div class="sub" id="sub">Pick a city and run a sample.</div>
+          <div class="dl">
+            <button id="dlGeo" disabled>Download GeoJSON</button>
+            <button id="dlCsv" disabled>Download CSV</button>
+          </div>
         </div>
-      </details>
+        <div class="legend" id="legend"></div>
+      </div>
 
-      <button class="run" id="run">Run sample</button>
-    </div>
-
-    <div class="err" id="err"></div>
-
-    <div class="result-head">
-      <div class="count" id="count">—</div>
-      <div class="sub" id="sub">Pick a city and run a sample.</div>
-      <div class="dl">
-        <button id="dlGeo" disabled>Download GeoJSON</button>
-        <button id="dlCsv" disabled>Download CSV</button>
+      <div class="mapcol">
+        <div class="mappanel">
+          <div id="map"></div>
+          <div class="maphint" id="maphint">click the map to zoom</div>
+          <div class="veil" id="veil"><div class="spin"></div><span>Extracting intersections…</span></div>
+        </div>
+        <div class="rowlist" id="list"></div>
       </div>
     </div>
-
-    <div class="list" id="list"></div>
-
-    <div class="legend" id="legend"></div>
-
-    <div class="foot">
-      A capped 1,000-record sample of a larger, continuously-maintained dataset.<br>
-      Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, ODbL 1.0.<br>
-      Built by Jigar Vegad.
-    </div>
-  </aside>
-
-  <div class="map-wrap">
-    <div id="map"></div>
-    <div class="veil" id="veil"><div class="spin"></div><span>Extracting intersections…</span></div>
   </div>
-</div>
+</section>
+
+<section class="band" id="cta">
+  <div class="wrap">
+    <div class="final">
+      <canvas id="field2"></canvas>
+      <div class="inner">
+        <p class="eyebrow" style="color:#9fa3d6">Need the full set?</p>
+        <h2>Every intersection, every city — on request.</h2>
+        <p>This page runs a capped 1,000-record sample of a larger, continuously-maintained dataset. Need full coverage, a specific region, or custom fields? Let's talk.</p>
+        <div class="final-cta btns">
+          <a class="btn btn-amber" href="#explore">Open the live map</a>
+          <button class="btn btn-ghost" id="reqBtn" style="background:#ffffff14;color:#fff;border-color:#ffffff30">Request the full dataset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div>Mobility<i style="color:var(--veh);font-style:normal">Metric</i> — signalized intersections from OpenStreetMap</div>
+    <div>Data © OpenStreetMap contributors, ODbL 1.0 · Built by Jigar Vegad</div>
+  </div>
+</footer>
 
 <div class="modal" id="about" role="dialog" aria-modal="true" aria-label="About MobilityMetric">
   <div class="sheet">
-    <button class="ghost x" id="aboutClose" aria-label="Close">Close</button>
+    <button class="btn btn-ghost x" id="aboutClose" aria-label="Close">Close</button>
     <h2>About MobilityMetric</h2>
-    <p class="lead">Every signalized intersection in a US city, extracted from OpenStreetMap and cleaned into one record per real junction &mdash; 225 cities across all 50 states and DC. This page runs a live 1,000-record sample; the full dataset is maintained continuously.</p>
-
+    <p class="lead">One clean record per signalized intersection, extracted from OpenStreetMap and deduplicated into one point per real junction — 225 US cities across all 50 states and DC, plus 271 cities across 41 European countries. This page runs a live 1,000-record sample; the full dataset is maintained continuously.</p>
     <h3>How the data is built</h3>
     <ol class="steps">
       <li>Pull traffic-signal nodes from OpenStreetMap for the area.</li>
       <li>Cluster and deduplicate overlapping poles into one point per real intersection.</li>
-      <li>Classify each by signal type &mdash; vehicular, pedestrian, both, HAWK beacon, or level crossing.</li>
-      <li>Enrich with per-arm approach bearings, speed limits, and street names.</li>
+      <li>Classify each by signal type — vehicular, pedestrian, both, HAWK beacon, or level crossing.</li>
+      <li>Enrich with the nearest street, and (US) per-arm approach geometry and speed limits.</li>
       <li>Fuse with official city open-data where it exists, and score confidence.</li>
       <li>Assign a stable, location-based ID that survives data refreshes.</li>
     </ol>
-
-    <h3>Accuracy vs. published city figures</h3>
-    <table class="acc">
-      <tr><th>City</th><th>City DOT (vehicular)</th><th>This dataset</th><th>Diff</th></tr>
-      <tr><td>Los Angeles</td><td>~4,850</td><td>4,856</td><td>0%</td></tr>
-      <tr><td>New York City</td><td>~13,770</td><td>13,198</td><td>&minus;4%</td></tr>
-      <tr><td>Chicago</td><td>~2,900</td><td>2,988</td><td>+3%</td></tr>
-    </table>
-
     <h3>What each record carries</h3>
-    <p class="fields"><b>Stable ID</b>, coordinates, <b>signal type</b>, approach count with <b>per-arm bearings</b>, <b>speed limit</b> (km/h &amp; mph), street names, <b>ADA accessibility</b> flags, OSM-vs-official <b>source &amp; confidence</b>, and last-edited date &mdash; exportable as GeoJSON or CSV.</p>
-
+    <p class="fields"><b>Stable ID</b>, coordinates, <b>signal type</b>, nearest street, <b>confidence</b> score, source, and OSM last-edited date — plus, for the US, <b>approach count</b>, <b>per-arm bearings</b> and <b>speed limits</b>. Exportable as GeoJSON or CSV.</p>
     <h3>Built for</h3>
     <p class="fields">V2X / C-ITS RSU placement and SPaT/MAP inventories, traffic simulation (SUMO, VISSIM), HD maps, routing, and pedestrian-accessibility audits.</p>
-
     <div class="who">
-      Built by <b>Jigar Vegad</b> &mdash; MSc Transportation Systems, TU Munich (ITS / V2X). Full US coverage, other regions, and custom fields are available on request.
-      <div class="cta2"><button class="req" id="reqModal">Request the full dataset</button></div>
+      Built by <b>Jigar Vegad</b> — MSc Transportation Systems, TU Munich (ITS / V2X). Full coverage, other regions, and custom fields are available on request.
     </div>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script>
 (function(){
   "use strict";
-  var API = "https://api.mobilitymetric.me";
-  var CONTACT = "mailto:vegad.jigar044@gmail.com?subject=MobilityMetric%20%E2%80%94%20full%20dataset%20enquiry&body=Hi%20Jigar%2C%20I%20saw%20the%20MobilityMetric%20demo%20and%20would%20like%20to%20talk%20about%20the%20full%20dataset.";
-  document.getElementById("reqTop").onclick=function(){location.href=CONTACT;};
-  document.getElementById("reqModal").onclick=function(){location.href=CONTACT;};
+  var reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
+  var CONTACT = "mailto:vegad.jigar044@gmail.com?subject=MobilityMetric%20%E2%80%94%20full%20dataset%20enquiry&body=Hi%20Jigar%2C%20I%20saw%20the%20MobilityMetric%20site%20and%20would%20like%20to%20talk%20about%20the%20full%20dataset.";
+  document.getElementById("reqBtn").onclick=function(){location.href=CONTACT;};
   var aboutEl=document.getElementById("about");
   document.getElementById("aboutBtn").onclick=function(){aboutEl.classList.add("on");};
   document.getElementById("aboutClose").onclick=function(){aboutEl.classList.remove("on");};
   aboutEl.onclick=function(e){if(e.target===aboutEl)aboutEl.classList.remove("on");};
   document.addEventListener("keydown",function(e){if(e.key==="Escape")aboutEl.classList.remove("on");});
 
-  var TYPES=[
-    {v:"vehicular_junction",label:"Vehicular",color:getCss("--veh")},
-    {v:"pedestrian_crossing",label:"Pedestrian",color:getCss("--ped")},
-    {v:"vehicular_and_pedestrian",label:"Both",color:getCss("--both")},
-    {v:"hawk_signal",label:"HAWK",color:getCss("--hawk")},
-    {v:"level_crossing",label:"Level crossing",color:getCss("--lvl")}
-  ];
   function getCss(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
-  function colorFor(t){var m={vehicular_junction:"--veh",pedestrian_crossing:"--ped",vehicular_and_pedestrian:"--both",hawk_signal:"--hawk",level_crossing:"--lvl"};return getCss(m[t]||"--unk");}
-  function labelFor(t){var f=TYPES.filter(function(x){return x.v===t;});return f.length?f[0].label:(t||"signal").replace(/_/g," ");}
+  var PALETTE={veh:getCss("--veh"),ped:getCss("--ped"),both:getCss("--both"),hawk:getCss("--hawk"),lvl:getCss("--lvl"),unk:getCss("--unk")};
 
-  // ---- map ----
-  var map=L.map("map",{zoomControl:true,preferCanvas:true,worldCopyJump:true}).setView([39.5,-98.35],4);
+  /* ---- generative hero/footer field ---- */
+  var COLORS=[PALETTE.veh,PALETTE.veh,PALETTE.veh,PALETTE.ped,PALETTE.ped,PALETTE.both,PALETTE.hawk,PALETTE.lvl];
+  function field(canvas,opts){
+    var ctx=canvas.getContext("2d"),pts=[],raf,t0=performance.now();
+    function size(){var r=canvas.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);canvas.width=r.width*dpr;canvas.height=r.height*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);build(r.width,r.height);}
+    function build(w,h){pts=[];var n=opts.n||780,cores=[[w*0.44,h*0.52],[w*0.62,h*0.38],[w*0.30,h*0.66]];
+      for(var i=0;i<n;i++){var c=cores[(Math.random()*cores.length)|0],ang=Math.random()*Math.PI*2,rad=Math.pow(Math.random(),.6)*Math.min(w,h)*0.46;
+        var x=c[0]+Math.cos(ang)*rad+(Math.random()-.5)*26,y=c[1]+Math.sin(ang)*rad*0.82+(Math.random()-.5)*26;
+        if(x<6||x>w-6||y>h-6||y<6){i--;continue;}
+        pts.push({x:x,y:y,c:COLORS[(Math.random()*COLORS.length)|0],r:Math.random()*1.4+1.1,ph:Math.random()*6.28,sp:Math.random()*.6+.3,d:Math.hypot(x-w/2,y-h/2)});}
+      pts.sort(function(a,b){return a.d-b.d;});}
+    function draw(now){var w=canvas.clientWidth,h=canvas.clientHeight,el=(now-t0)/1000;ctx.clearRect(0,0,w,h);
+      for(var i=0;i<pts.length;i++){var p=pts[i],appear=reduce?1:Math.min(1,Math.max(0,(el-p.d/900)*2.4));if(appear<=0)continue;
+        var tw=reduce?1:(0.62+0.38*Math.sin(el*p.sp*2+p.ph));ctx.globalAlpha=appear*tw;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r*appear,0,6.2832);ctx.fillStyle=p.c;ctx.fill();
+        if(p.r>2){ctx.globalAlpha=appear*tw*0.22;ctx.beginPath();ctx.arc(p.x,p.y,p.r*3.2,0,6.2832);ctx.fillStyle=p.c;ctx.fill();}}
+      ctx.globalAlpha=1;if(!reduce)raf=requestAnimationFrame(draw);}
+    size();addEventListener("resize",size);if(reduce){draw(performance.now());}else{raf=requestAnimationFrame(draw);}}
+  var f=document.getElementById("field");if(f)field(f,{n:820});
+  var f2=document.getElementById("field2");if(f2)field(f2,{n:420});
+
+  /* ---- scroll reveals + counters ---- */
+  function animateCount(el){var to=+el.getAttribute("data-to"),suf=el.getAttribute("data-suffix")||"";if(reduce||!window.gsap){el.textContent=to.toLocaleString("en-US")+suf;return;}
+    var o={v:0};gsap.to(o,{v:to,duration:1.4,ease:"power2.out",onUpdate:function(){el.textContent=Math.round(o.v).toLocaleString("en-US")+suf;}});}
+  if(window.gsap&&window.ScrollTrigger&&!reduce){
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.utils.toArray(".sec-head,.prob,.cards,.acc,.final,.stat-row,.explorer").forEach(function(el){
+      gsap.from(el,{y:26,opacity:0,duration:.7,ease:"power3.out",scrollTrigger:{trigger:el,start:"top 84%"}});});
+    document.querySelectorAll(".stat .n").forEach(function(el){
+      ScrollTrigger.create({trigger:el,start:"top 90%",once:true,onEnter:function(){animateCount(el);}});});
+    gsap.from(".hero h1,.hero .lead,.hero-cta,.chips",{y:18,opacity:0,duration:.7,stagger:.08,ease:"power3.out"});
+  }
+
+  /* ================= LIVE MAP ================= */
+  var APIS={US:"https://api.mobilitymetric.me",EU:"https://api.mobilitymetric.me/eu"};
+  var TYPES={
+    US:[
+      {v:"vehicular_junction",label:"Vehicular",key:"veh"},
+      {v:"pedestrian_crossing",label:"Pedestrian",key:"ped"},
+      {v:"vehicular_and_pedestrian",label:"Both",key:"both"},
+      {v:"hawk_signal",label:"HAWK",key:"hawk"},
+      {v:"level_crossing",label:"Level crossing",key:"lvl"}
+    ],
+    EU:[
+      {v:"vehicular",label:"Vehicular",key:"veh"},
+      {v:"pedestrian",label:"Pedestrian",key:"ped"}
+    ]
+  };
+  var COLORKEY={vehicular_junction:"veh",vehicular:"veh",pedestrian_crossing:"ped",pedestrian:"ped",
+    vehicular_and_pedestrian:"both",hawk_signal:"hawk",level_crossing:"lvl"};
+  function colorFor(t){return PALETTE[COLORKEY[t]||"unk"];}
+  function labelFor(t){var all=TYPES.US.concat(TYPES.EU),f=all.filter(function(x){return x.v===t;});return f.length?f[0].label:(t||"signal").replace(/_/g," ");}
+
+  var region="US";
+  var selectedTypes={};
+  var lastRecords=[],lastCity="";
+  var markerById={};
+
+  var map=L.map("map",{zoomControl:true,preferCanvas:true,worldCopyJump:true,scrollWheelZoom:false}).setView([39.5,-98.35],4);
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",{attribution:'Tiles &copy; Esri &middot; Data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',maxZoom:16}).addTo(map);
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",{maxZoom:16}).addTo(map);
   var canvas=L.canvas({padding:.5,tolerance:6});
   var layer=L.layerGroup().addTo(map);
+  // enable wheel-zoom only after a click, so page scroll isn't trapped
+  map.on("click",function(){map.scrollWheelZoom.enable();var h=document.getElementById("maphint");if(h)h.style.opacity="0";});
+  map.on("mouseout",function(){map.scrollWheelZoom.disable();});
 
-  // ---- state ----
-  var selectedTypes={};TYPES.forEach(function(t){selectedTypes[t.v]=true;});
-  var lastRecords=[],lastCity="",markerById={};
-
-  // ---- build type chips ----
+  var citySel=document.getElementById("city");
   var typesEl=document.getElementById("types");
-  TYPES.forEach(function(t){
-    var b=document.createElement("button");
-    b.className="chip";b.type="button";b.setAttribute("aria-pressed","true");
-    b.innerHTML='<span class="dot" style="background:'+t.color+'"></span>'+t.label;
-    b.onclick=function(){
-      var on=b.getAttribute("aria-pressed")==="true";
-      // keep at least one selected
-      var count=Object.keys(selectedTypes).filter(function(k){return selectedTypes[k];}).length;
-      if(on&&count===1)return;
-      selectedTypes[t.v]=!on;b.setAttribute("aria-pressed",String(!on));
-    };
-    typesEl.appendChild(b);
-  });
-
-  // ---- legend ----
-  var leg=document.getElementById("legend");
-  leg.innerHTML="<div style='color:var(--text)'>Signal type</div>"+TYPES.map(function(t){
-    return "<div class='lg'><span class='dot' style='background:"+t.color+"'></span>"+t.label+"</div>";
-  }).join("");
-
-  // ---- advanced ----
+  var legEl=document.getElementById("legend");
   var conf=document.getElementById("conf"),rad=document.getElementById("rad");
   conf.oninput=function(){document.getElementById("confVal").textContent=conf.value+"%";};
   rad.oninput=function(){document.getElementById("radVal").textContent=rad.value+" m";};
 
-  // ---- load cities ----
-  var citySel=document.getElementById("city");
-  fetch(API+"/cities").then(function(r){return r.json();}).then(function(d){
-    var byState={};
-    d.cities.forEach(function(c){(byState[c.state_name]=byState[c.state_name]||[]).push(c);});
-    Object.keys(byState).sort().forEach(function(sn){
-      var og=document.createElement("optgroup");og.label=sn;
-      byState[sn].forEach(function(c){
-        var o=document.createElement("option");o.value=c.slug;o.textContent=c.name;
-        o.dataset.center=c.center.join(",");og.appendChild(o);
-      });
-      citySel.appendChild(og);
+  function buildTypeChips(){
+    typesEl.innerHTML="";selectedTypes={};
+    TYPES[region].forEach(function(t){
+      selectedTypes[t.v]=true;
+      var b=document.createElement("button");
+      b.className="chip";b.type="button";b.setAttribute("aria-pressed","true");
+      b.innerHTML='<span class="dot" style="background:'+PALETTE[t.key]+'"></span>'+t.label;
+      b.onclick=function(){
+        var on=b.getAttribute("aria-pressed")==="true";
+        var count=Object.keys(selectedTypes).filter(function(k){return selectedTypes[k];}).length;
+        if(on&&count===1)return;
+        selectedTypes[t.v]=!on;b.setAttribute("aria-pressed",String(!on));
+      };
+      typesEl.appendChild(b);
     });
-    // default to a marquee city, then auto-run so the map lands alive
-    citySel.value="dc-washington";
-    runQuery();
-  }).catch(function(){showErr("Couldn't load the city list. The data service may be waking up — try again in a moment.");});
+    legEl.innerHTML=TYPES[region].map(function(t){return "<span class='lg'><span class='dot' style='background:"+PALETTE[t.key]+"'></span>"+t.label+"</span>";}).join("");
+  }
 
-  // ---- run ----
-  document.getElementById("run").onclick=runQuery;
-  citySel.onchange=runQuery;
+  function loadCities(defaultKey){
+    citySel.innerHTML='<option>Loading…</option>';
+    return fetch(APIS[region]+"/cities").then(function(r){return r.json();}).then(function(d){
+      citySel.innerHTML="";
+      var groupKey=region==="US"?"state_name":"country_name";
+      var valKey=region==="US"?"slug":"key";
+      var byGroup={};
+      d.cities.forEach(function(c){(byGroup[c[groupKey]]=byGroup[c[groupKey]]||[]).push(c);});
+      Object.keys(byGroup).sort().forEach(function(gn){
+        var og=document.createElement("optgroup");og.label=gn;
+        byGroup[gn].forEach(function(c){var o=document.createElement("option");o.value=c[valKey];o.textContent=c.name;og.appendChild(o);});
+        citySel.appendChild(og);
+      });
+      if(defaultKey&&citySel.querySelector('option[value="'+defaultKey+'"]'))citySel.value=defaultKey;
+      runQuery();
+    }).catch(function(){showErr(region==="EU"?"The Europe service is warming up — try again in a moment, or switch back to the US.":"Couldn't load the city list. The data service may be waking up — try again in a moment.");});
+  }
 
-  function selectedTypeArray(){
-    var all=Object.keys(selectedTypes).every(function(k){return selectedTypes[k];});
-    if(all)return ["all"];
-    return Object.keys(selectedTypes).filter(function(k){return selectedTypes[k];});
+  function selectedTypeValue(){
+    var keys=Object.keys(selectedTypes),on=keys.filter(function(k){return selectedTypes[k];});
+    var all=on.length===keys.length;
+    if(region==="US")return all?["all"]:on;        // US expects an array
+    return all?"all":on[0];                          // EU expects a string
   }
 
   function runQuery(){
-    var slug=citySel.value;if(!slug)return;
+    var val=citySel.value;if(!val)return;
     hideErr();setLoading(true);
-    var body={city:slug,signalType:selectedTypeArray(),minConfidence:parseInt(conf.value,10),
-              clusterRadiusMeters:parseInt(rad.value,10),maxResults:1000,includeAccessibility:true};
-    fetch(API+"/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    var body={city:val,minConfidence:parseInt(conf.value,10),clusterRadiusMeters:parseInt(rad.value,10),maxResults:1000,signalType:selectedTypeValue()};
+    if(region==="US")body.includeAccessibility=true;
+    fetch(APIS[region]+"/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
       .then(function(r){if(!r.ok)return r.json().then(function(j){throw new Error(j.detail||("Error "+r.status));});return r.json();})
-      .then(function(d){render(d,slug);})
+      .then(function(d){render(d);})
       .catch(function(e){showErr(e.message||"Something went wrong running the sample.");})
       .finally(function(){setLoading(false);});
   }
 
-  function setLoading(on){
-    document.getElementById("veil").classList.toggle("on",on);
-    var btn=document.getElementById("run");btn.disabled=on;
-    btn.innerHTML=on?'<span class="spin"></span>Running…':"Run sample";
-  }
+  function setLoading(on){document.getElementById("veil").classList.toggle("on",on);var b=document.getElementById("run");b.disabled=on;b.innerHTML=on?'<span class="spin"></span>Running…':"Run sample";}
   function showErr(m){var e=document.getElementById("err");e.textContent=m;e.style.display="block";}
   function hideErr(){document.getElementById("err").style.display="none";}
+  function cityName(val){var o=citySel.querySelector('option[value="'+(window.CSS&&CSS.escape?CSS.escape(val):val)+'"]');return o?o.textContent:val;}
 
-  function cityName(slug){
-    var o=citySel.querySelector('option[value="'+slug+'"]');return o?o.textContent:slug;
-  }
-
-  function render(d,slug){
-    lastRecords=d.records||[];lastCity=cityName(slug);
+  function render(d){
+    lastRecords=d.records||[];lastCity=cityName(citySel.value);
     layer.clearLayers();markerById={};
     var fmt=new Intl.NumberFormat("en-US");
     document.getElementById("count").innerHTML='<span>'+fmt.format(d.count)+'</span>';
     var sub=document.getElementById("sub");
-    if(d.capped_to_sample){sub.textContent="Sample of "+fmt.format(d.total_found)+" intersections in "+lastCity+". Full set on request.";}
-    else{sub.textContent="All "+fmt.format(d.count)+" intersections in "+lastCity+".";}
-
-    var pts=[];var listEl=document.getElementById("list");listEl.innerHTML="";
+    if(d.capped_to_sample)sub.textContent="Sample of "+fmt.format(d.total_found)+" intersections in "+lastCity+". Full set on request.";
+    else sub.textContent="All "+fmt.format(d.count)+" intersections in "+lastCity+".";
+    var pts=[],listEl=document.getElementById("list");listEl.innerHTML="";
     lastRecords.forEach(function(r,i){
       if(r.lat==null||r.lon==null)return;
       var col=colorFor(r.signal_type);
-      var m=L.circleMarker([r.lat,r.lon],{renderer:canvas,radius:4.5,weight:1,color:"#0b0e12",fillColor:col,fillOpacity:.95});
+      var m=L.circleMarker([r.lat,r.lon],{renderer:canvas,radius:4.5,weight:1,color:"#0d0e1c",fillColor:col,fillOpacity:.95});
       m.on("click",function(){openDetail(r,m);setActive(i);});
       m.addTo(layer);markerById[i]=m;pts.push([r.lat,r.lon]);
       listEl.appendChild(rowFor(r,i,col));
     });
-    if(pts.length){map.fitBounds(pts,{padding:[30,30],maxZoom:15});}
+    if(pts.length)map.fitBounds(pts,{padding:[30,30],maxZoom:15});
     var has=lastRecords.length>0;
     document.getElementById("dlGeo").disabled=!has;document.getElementById("dlCsv").disabled=!has;
   }
@@ -433,64 +609,60 @@
     var row=document.createElement("div");row.className="row";row.dataset.i=i;
     var cf=r.confidence&&typeof r.confidence.score==="number"?Math.round(r.confidence.score*100)+"%":"";
     var street=(r.street_names&&r.street_names.length)?r.street_names.join(" · "):(r.nearest_street||"Unnamed junction");
-    row.innerHTML='<span class="mk" style="background:'+col+'"></span>'+
-      '<div class="meta"><div class="st">'+labelFor(r.signal_type)+'</div>'+
-      '<div class="sub2">'+escapeHtml(street)+'</div></div>'+
-      (cf?'<div class="cf">'+cf+'</div>':'');
+    row.innerHTML='<span class="mk" style="background:'+col+'"></span><div class="meta"><div class="st">'+labelFor(r.signal_type)+'</div><div class="sub2">'+escapeHtml(street)+'</div></div>'+(cf?'<div class="cf">'+cf+'</div>':'');
     row.onclick=function(){var m=markerById[i];if(m){map.setView(m.getLatLng(),16);openDetail(r,m);}setActive(i);};
     return row;
   }
-  function setActive(i){
-    Array.prototype.forEach.call(document.querySelectorAll(".row"),function(el){el.classList.toggle("active",el.dataset.i==i);});
-    var act=document.querySelector('.row[data-i="'+i+'"]');if(act)act.scrollIntoView({block:"nearest"});
-  }
+  function setActive(i){Array.prototype.forEach.call(document.querySelectorAll(".row"),function(el){el.classList.toggle("active",el.dataset.i==i);});var a=document.querySelector('.row[data-i="'+i+'"]');if(a)a.scrollIntoView({block:"nearest"});}
 
   function openDetail(r,m){
     var col=colorFor(r.signal_type);
-    var acc=r.accessibility?Object.keys(r.accessibility).filter(function(k){return r.accessibility[k]===true;}):[];
     var kv=function(k,v){return v==null||v===""?"":'<div class="kv"><span>'+k+'</span><span>'+v+'</span></div>';};
-    var appr="";
-    if(r.approaches&&r.approaches.length){
-      appr='<div class="appr"><div style="color:var(--muted);font-size:11px;margin-bottom:3px">Approaches ('+r.approaches.length+' arms)</div>'+
-        r.approaches.map(function(a){
-          var sp=a.speed_kmh!=null?(Math.round(a.speed_kmh*0.621371)+" mph"):"—";
-          return '<div class="a"><span>'+Math.round(a.bearing)+'° '+escapeHtml(a.street||a.highway||"")+'</span><span>'+sp+'</span></div>';
-        }).join("")+'</div>';
-    }
     var tier=r.source_tier==="official+osm"?"official + OSM":(r.source_tier==="official"?"official":"OSM");
-    var html='<div class="pop"><h4>'+labelFor(r.signal_type)+'</h4>'+
-      '<div class="pid">'+escapeHtml(r.intersection_id||"")+'</div>'+
+    var html='<div class="pop"><h4>'+labelFor(r.signal_type)+'</h4><div class="pid">'+escapeHtml(r.intersection_id||"")+'</div>'+
       '<div style="margin-bottom:8px"><span class="tag" style="background:'+col+'">'+labelFor(r.signal_type)+'</span></div>'+
-      kv("Coordinates",r.lat.toFixed(5)+", "+r.lon.toFixed(5))+
-      kv("Approach arms",(r.approaches&&r.approaches.length)?r.approaches.length:r.approach_count)+
-      kv("Speed limit",r.speed_limit_mph!=null?(r.speed_limit_mph+" mph"):null)+
-      kv("Source",tier)+
+      kv("Coordinates",(r.lat!=null&&r.lon!=null)?r.lat.toFixed(5)+", "+r.lon.toFixed(5):null)+
+      kv("Nearest street",(r.street_names&&r.street_names.length)?r.street_names.join(" · "):r.nearest_street)+
+      (region==="US"?kv("Approach arms",(r.approaches&&r.approaches.length)?r.approaches.length:r.approach_count):"")+
+      (region==="US"?kv("Speed limit",r.speed_limit_mph!=null?(r.speed_limit_mph+" mph"):null):"")+
+      (region==="US"?kv("Source",tier):"")+
       kv("Confidence",r.confidence&&r.confidence.score!=null?Math.round(r.confidence.score*100)+"%":null)+
-      kv("ADA features",acc.length?acc.length+" mapped":null)+
-      kv("OSM edited",r.osm_last_edited?String(r.osm_last_edited).slice(0,10):null)+
-      appr+'</div>';
-    m.bindPopup(html,{maxWidth:300,autoPanPadding:[30,30]}).openPopup();
+      kv("OSM edited",r.osm_last_edited?String(r.osm_last_edited).slice(0,10):null)+'</div>';
+    m.bindPopup(html,{maxWidth:290,autoPanPadding:[30,30]}).openPopup();
   }
-
   function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
 
-  // ---- downloads ----
+  /* downloads */
   document.getElementById("dlGeo").onclick=function(){
-    var fc={type:"FeatureCollection",features:lastRecords.map(function(r){
-      return {type:"Feature",geometry:{type:"Point",coordinates:[r.lon,r.lat]},properties:r};})};
-    dl(JSON.stringify(fc,null,2),slugName()+"_sample.geojson","application/geo+json");
-  };
+    var fc={type:"FeatureCollection",features:lastRecords.map(function(r){return {type:"Feature",geometry:{type:"Point",coordinates:[r.lon,r.lat]},properties:r};})};
+    dl(JSON.stringify(fc,null,2),slugName()+"_sample.geojson","application/geo+json");};
   document.getElementById("dlCsv").onclick=function(){
-    var cols=["intersection_id","state_code","city_name","lat","lon","signal_type","approach_count","nearest_street","speed_limit_mph","source_tier"];
+    var cols=region==="US"
+      ?["intersection_id","state_code","city_name","lat","lon","signal_type","approach_count","nearest_street","speed_limit_mph","source_tier"]
+      :["intersection_id","country","city_name","lat","lon","signal_type","nearest_street"];
     var esc=function(v){v=v==null?"":String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
     var rows=[cols.join(",")].concat(lastRecords.map(function(r){return cols.map(function(c){return esc(r[c]);}).join(",");}));
-    dl(rows.join("\n"),slugName()+"_sample.csv","text/csv");
-  };
+    dl(rows.join("\n"),slugName()+"_sample.csv","text/csv");};
   function slugName(){return (lastCity||"intersections").toLowerCase().replace(/[^a-z0-9]+/g,"_");}
-  function dl(text,name,type){
-    var b=new Blob([text],{type:type}),u=URL.createObjectURL(b),a=document.createElement("a");
-    a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},2000);
-  }
+  function dl(text,name,type){var b=new Blob([text],{type:type}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},2000);}
+
+  /* region toggle */
+  var defaults={US:"dc-washington",EU:"DE-berlin"};
+  Array.prototype.forEach.call(document.querySelectorAll("#region button"),function(b){
+    b.onclick=function(){
+      if(b.getAttribute("aria-pressed")==="true")return;
+      region=b.getAttribute("data-r");
+      Array.prototype.forEach.call(document.querySelectorAll("#region button"),function(x){x.setAttribute("aria-pressed",String(x===b));});
+      document.getElementById("cityLab").textContent=region==="US"?"Search a US city":"Search a European city";
+      buildTypeChips();loadCities(defaults[region]);
+    };
+  });
+
+  /* init */
+  document.getElementById("run").onclick=runQuery;
+  citySel.onchange=runQuery;
+  buildTypeChips();
+  loadCities(defaults.US);
 })();
 </script>
 </body>
