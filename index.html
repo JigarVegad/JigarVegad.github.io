@@ -12,7 +12,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 <style>
 /* ── Bright airy paper; colour comes from the signal taxonomy (amber/cyan/green/pink/red).
       Signature = a deep-ink live map panel alive with multicolour intersection dots. ── */
@@ -51,6 +50,15 @@ header{position:sticky;top:0;z-index:1000;background:#F2F4F8d9;backdrop-filter:b
 .btn-ghost{background:var(--paper);border-color:var(--line);color:var(--ink)}
 .btn-ghost:hover{border-color:#cfd3df}
 .nav .btn{height:40px}
+.prod{position:relative}
+.prod-menu{position:absolute;right:0;top:50px;background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 60px -24px rgba(20,22,40,.4);padding:6px;min-width:260px;display:none;z-index:1300}
+.prod-menu.on{display:block}
+.prod-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:10px;color:var(--ink);font-size:.92rem;font-weight:600}
+.prod-item .pdot{width:10px;height:10px;border-radius:50%;flex:none}
+.prod-item small{color:var(--faint);font-size:.72rem;margin-left:auto;font-weight:500}
+.prod-item:hover{background:var(--bg)}
+.prod-item.disabled{color:var(--faint);cursor:default}
+.prod-item.disabled:hover{background:transparent}
 @media(max-width:860px){.nav .links{display:none}}
 @media(max-width:520px){.nav{gap:10px}.nav .btn{height:34px;padding:0 13px;font-size:.82rem}.brand{font-size:1.05rem}.acc th,.acc td{padding:10px 11px;font-size:.8rem}}
 
@@ -182,6 +190,16 @@ input[type=range]{width:100%;accent-color:var(--veh)}
 .pop .kv span:first-child{color:#9a9cc4}
 .pop .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.64rem;font-weight:700;color:#17130a}
 
+/* explore teaser */
+.teaser{margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.teaser-copy h2{font-size:clamp(1.7rem,3.3vw,2.5rem);margin:.5rem 0 0}
+.teaser-panel{position:relative;display:block;border-radius:22px;overflow:hidden;background:radial-gradient(130% 120% at 30% 0%,var(--ink-panel-2),var(--ink-panel));box-shadow:0 40px 80px -40px rgba(17,18,38,.55);aspect-ratio:16/11;min-height:300px;transition:transform .2s ease,box-shadow .25s ease}
+.teaser-panel:hover{transform:translateY(-3px);box-shadow:0 48px 90px -44px rgba(17,18,38,.6)}
+.teaser-panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.teaser-panel .badge{position:absolute;left:16px;bottom:14px;display:flex;gap:7px;align-items:center;color:#cfd2ea;font-size:.76rem;background:#ffffff14;border:1px solid #ffffff22;padding:5px 11px;border-radius:999px;backdrop-filter:blur(6px)}
+.teaser-panel .live{width:7px;height:7px;border-radius:50%;background:var(--both);animation:pulse 2s infinite}
+@media(max-width:800px){.teaser{grid-template-columns:1fr;gap:26px}.teaser-panel{order:-1}}
+
 /* final cta */
 .final{background:var(--ink-panel);border-radius:24px;padding:48px 40px;text-align:center;color:#fff;position:relative;overflow:hidden}
 .final h2{font-size:clamp(1.8rem,3.4vw,2.6rem);color:#fff}
@@ -219,11 +237,19 @@ footer{padding-block:34px;color:var(--faint);font-size:.86rem;border-top:1px sol
     <nav class="links">
       <a href="#products">Datasets</a>
       <a href="#proof">Accuracy</a>
-      <a href="#explore">Live map</a>
+      <a href="signals.html">Live map</a>
     </nav>
     <div class="sp"></div>
+    <div class="prod">
+      <button class="btn btn-ghost" id="prodBtn" aria-haspopup="true" aria-expanded="false">Products ▾</button>
+      <div class="prod-menu" id="prodMenu" role="menu">
+        <a class="prod-item" href="signals.html" role="menuitem"><span class="pdot" style="background:var(--veh)"></span>Traffic Signals<small>US + Europe · live</small></a>
+        <span class="prod-item disabled" role="menuitem"><span class="pdot" style="background:var(--both)"></span>EU Low Emission Zones<small>Coming soon</small></span>
+        <span class="prod-item disabled" role="menuitem"><span class="pdot" style="background:var(--ped)"></span>More datasets<small>On request</small></span>
+      </div>
+    </div>
     <button class="btn btn-ghost" id="aboutBtn">About</button>
-    <a class="btn btn-amber" href="#explore">Open live map</a>
+    <a class="btn btn-amber" href="signals.html">Open live map</a>
   </div>
 </header>
 
@@ -234,7 +260,7 @@ footer{padding-block:34px;color:var(--faint);font-size:.86rem;border-top:1px sol
       <h1>From a continent to a single intersection.</h1>
       <p class="lead">One clean record per real signalized intersection — across 225 cities in the US and 271 in Europe — classified, deduplicated and ready for simulation, V2X and HD maps.</p>
       <div class="hero-cta">
-        <a class="btn btn-amber" href="#explore">Explore the live map</a>
+        <a class="btn btn-amber" href="signals.html">Explore the live map</a>
         <a class="btn btn-ghost" href="#products">See coverage</a>
       </div>
       <div class="chips">
@@ -329,58 +355,20 @@ footer{padding-block:34px;color:var(--faint);font-size:.86rem;border-top:1px sol
 
 <section class="band" id="explore">
   <div class="wrap">
-    <div class="sec-head">
-      <p class="eyebrow">Feel the data</p>
-      <h2>Search any city. See 1,000 real intersections.</h2>
-      <p class="lead">Pick a region and a city, run a free sample, and inspect every intersection on the map — then download it as GeoJSON or CSV.</p>
-    </div>
-
-    <div class="explorer">
-      <div class="ctl">
-        <div class="region" id="region" role="tablist" aria-label="Region">
-          <button data-r="US" aria-pressed="true">United States</button>
-          <button data-r="EU" aria-pressed="false">Europe</button>
+    <div class="teaser">
+      <div class="teaser-copy">
+        <p class="eyebrow">Feel the data</p>
+        <h2>Search any city. See 1,000 real intersections.</h2>
+        <p class="lead">Pick a region and a city, run a free sample, and inspect every intersection on a live map — signal type, nearest street and confidence — then download it as GeoJSON or CSV.</p>
+        <div class="hero-cta" style="margin-top:22px">
+          <a class="btn btn-amber" href="signals.html">Open the live map →</a>
+          <a class="btn btn-ghost" href="#products">See coverage</a>
         </div>
-        <div>
-          <label class="lab" for="city" id="cityLab">Search a US city</label>
-          <div class="select-wrap"><select id="city" aria-label="City"></select></div>
-        </div>
-        <div>
-          <label class="lab">Signal types</label>
-          <div class="types" id="types"></div>
-        </div>
-        <details class="adv">
-          <summary><span class="tw"></span>Advanced options</summary>
-          <div>
-            <div class="range-row"><span class="lab" style="margin:0">Minimum confidence</span><b id="confVal">0%</b></div>
-            <input type="range" id="conf" min="0" max="100" step="5" value="0">
-            <div class="hint">Drop intersections the data is less sure about.</div>
-            <div class="range-row"><span class="lab" style="margin:0">Cluster radius</span><b id="radVal">40 m</b></div>
-            <input type="range" id="rad" min="20" max="90" step="5" value="40">
-            <div class="hint">How close signals group into one intersection.</div>
-          </div>
-        </details>
-        <button class="run" id="run">Run sample</button>
-        <div class="err" id="err"></div>
-        <div class="result-head">
-          <div class="count" id="count">—</div>
-          <div class="sub" id="sub">Pick a city and run a sample.</div>
-          <div class="dl">
-            <button id="dlGeo" disabled>Download GeoJSON</button>
-            <button id="dlCsv" disabled>Download CSV</button>
-          </div>
-        </div>
-        <div class="legend" id="legend"></div>
       </div>
-
-      <div class="mapcol">
-        <div class="mappanel">
-          <div id="map"></div>
-          <div class="maphint" id="maphint">click the map to zoom</div>
-          <div class="veil" id="veil"><div class="spin"></div><span>Extracting intersections…</span></div>
-        </div>
-        <div class="rowlist" id="list"></div>
-      </div>
+      <a class="teaser-panel" href="signals.html" aria-label="Open the live map">
+        <canvas id="field3"></canvas>
+        <span class="badge"><span class="live"></span>live · US + Europe</span>
+      </a>
     </div>
   </div>
 </section>
@@ -394,7 +382,7 @@ footer{padding-block:34px;color:var(--faint);font-size:.86rem;border-top:1px sol
         <h2>Every intersection, every city — on request.</h2>
         <p>This page runs a capped 1,000-record sample of a larger, continuously-maintained dataset. Need full coverage, a specific region, or custom fields? Let's talk.</p>
         <div class="final-cta btns">
-          <a class="btn btn-amber" href="#explore">Open the live map</a>
+          <a class="btn btn-amber" href="signals.html">Open the live map</a>
           <button class="btn btn-ghost" id="reqBtn" style="background:#ffffff14;color:#fff;border-color:#ffffff30">Request the full dataset</button>
         </div>
       </div>
@@ -433,7 +421,6 @@ footer{padding-block:34px;color:var(--faint);font-size:.86rem;border-top:1px sol
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script>
@@ -471,200 +458,28 @@ footer{padding-block:34px;color:var(--faint);font-size:.86rem;border-top:1px sol
     size();addEventListener("resize",size);if(reduce){draw(performance.now());}else{raf=requestAnimationFrame(draw);}}
   var f=document.getElementById("field");if(f)field(f,{n:820});
   var f2=document.getElementById("field2");if(f2)field(f2,{n:420});
+  var f3=document.getElementById("field3");if(f3)field(f3,{n:560});
+
+  // products dropdown
+  var pb=document.getElementById("prodBtn"),pm=document.getElementById("prodMenu");
+  if(pb&&pm){
+    pb.onclick=function(e){e.stopPropagation();var on=pm.classList.toggle("on");pb.setAttribute("aria-expanded",String(on));};
+    document.addEventListener("click",function(){pm.classList.remove("on");pb.setAttribute("aria-expanded","false");});
+    pm.onclick=function(e){e.stopPropagation();};
+  }
 
   /* ---- scroll reveals + counters ---- */
   function animateCount(el){var to=+el.getAttribute("data-to"),suf=el.getAttribute("data-suffix")||"";if(reduce||!window.gsap){el.textContent=to.toLocaleString("en-US")+suf;return;}
     var o={v:0};gsap.to(o,{v:to,duration:1.4,ease:"power2.out",onUpdate:function(){el.textContent=Math.round(o.v).toLocaleString("en-US")+suf;}});}
   if(window.gsap&&window.ScrollTrigger&&!reduce){
     gsap.registerPlugin(ScrollTrigger);
-    gsap.utils.toArray(".sec-head,.prob,.cards,.acc,.final,.stat-row,.explorer").forEach(function(el){
+    gsap.utils.toArray(".sec-head,.prob,.cards,.acc,.final,.stat-row,.teaser").forEach(function(el){
       gsap.from(el,{y:26,opacity:0,duration:.7,ease:"power3.out",scrollTrigger:{trigger:el,start:"top 84%"}});});
     document.querySelectorAll(".stat .n").forEach(function(el){
       ScrollTrigger.create({trigger:el,start:"top 90%",once:true,onEnter:function(){animateCount(el);}});});
     gsap.from(".hero h1,.hero .lead,.hero-cta,.chips",{y:18,opacity:0,duration:.7,stagger:.08,ease:"power3.out"});
   }
 
-  /* ================= LIVE MAP ================= */
-  var APIS={US:"https://api.mobilitymetric.me",EU:"https://api.mobilitymetric.me/eu"};
-  var TYPES={
-    US:[
-      {v:"vehicular_junction",label:"Vehicular",key:"veh"},
-      {v:"pedestrian_crossing",label:"Pedestrian",key:"ped"},
-      {v:"vehicular_and_pedestrian",label:"Both",key:"both"},
-      {v:"hawk_signal",label:"HAWK",key:"hawk"},
-      {v:"level_crossing",label:"Level crossing",key:"lvl"}
-    ],
-    EU:[
-      {v:"vehicular",label:"Vehicular",key:"veh"},
-      {v:"pedestrian",label:"Pedestrian",key:"ped"}
-    ]
-  };
-  var COLORKEY={vehicular_junction:"veh",vehicular:"veh",pedestrian_crossing:"ped",pedestrian:"ped",
-    vehicular_and_pedestrian:"both",hawk_signal:"hawk",level_crossing:"lvl"};
-  function colorFor(t){return PALETTE[COLORKEY[t]||"unk"];}
-  function labelFor(t){var all=TYPES.US.concat(TYPES.EU),f=all.filter(function(x){return x.v===t;});return f.length?f[0].label:(t||"signal").replace(/_/g," ");}
-
-  var region="US";
-  var selectedTypes={};
-  var lastRecords=[],lastCity="";
-  var markerById={};
-
-  var map=L.map("map",{zoomControl:true,preferCanvas:true,worldCopyJump:true,scrollWheelZoom:false}).setView([39.5,-98.35],4);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",{attribution:'Tiles &copy; Esri &middot; Data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',maxZoom:16}).addTo(map);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",{maxZoom:16}).addTo(map);
-  var canvas=L.canvas({padding:.5,tolerance:6});
-  var layer=L.layerGroup().addTo(map);
-  // enable wheel-zoom only after a click, so page scroll isn't trapped
-  map.on("click",function(){map.scrollWheelZoom.enable();var h=document.getElementById("maphint");if(h)h.style.opacity="0";});
-  map.on("mouseout",function(){map.scrollWheelZoom.disable();});
-
-  var citySel=document.getElementById("city");
-  var typesEl=document.getElementById("types");
-  var legEl=document.getElementById("legend");
-  var conf=document.getElementById("conf"),rad=document.getElementById("rad");
-  conf.oninput=function(){document.getElementById("confVal").textContent=conf.value+"%";};
-  rad.oninput=function(){document.getElementById("radVal").textContent=rad.value+" m";};
-
-  function buildTypeChips(){
-    typesEl.innerHTML="";selectedTypes={};
-    TYPES[region].forEach(function(t){
-      selectedTypes[t.v]=true;
-      var b=document.createElement("button");
-      b.className="chip";b.type="button";b.setAttribute("aria-pressed","true");
-      b.innerHTML='<span class="dot" style="background:'+PALETTE[t.key]+'"></span>'+t.label;
-      b.onclick=function(){
-        var on=b.getAttribute("aria-pressed")==="true";
-        var count=Object.keys(selectedTypes).filter(function(k){return selectedTypes[k];}).length;
-        if(on&&count===1)return;
-        selectedTypes[t.v]=!on;b.setAttribute("aria-pressed",String(!on));
-      };
-      typesEl.appendChild(b);
-    });
-    legEl.innerHTML=TYPES[region].map(function(t){return "<span class='lg'><span class='dot' style='background:"+PALETTE[t.key]+"'></span>"+t.label+"</span>";}).join("");
-  }
-
-  function loadCities(defaultKey){
-    citySel.innerHTML='<option>Loading…</option>';
-    return fetch(APIS[region]+"/cities").then(function(r){return r.json();}).then(function(d){
-      citySel.innerHTML="";
-      var groupKey=region==="US"?"state_name":"country_name";
-      var valKey=region==="US"?"slug":"key";
-      var byGroup={};
-      d.cities.forEach(function(c){(byGroup[c[groupKey]]=byGroup[c[groupKey]]||[]).push(c);});
-      Object.keys(byGroup).sort().forEach(function(gn){
-        var og=document.createElement("optgroup");og.label=gn;
-        byGroup[gn].forEach(function(c){var o=document.createElement("option");o.value=c[valKey];o.textContent=c.name;og.appendChild(o);});
-        citySel.appendChild(og);
-      });
-      if(defaultKey&&citySel.querySelector('option[value="'+defaultKey+'"]'))citySel.value=defaultKey;
-      runQuery();
-    }).catch(function(){showErr(region==="EU"?"The Europe service is warming up — try again in a moment, or switch back to the US.":"Couldn't load the city list. The data service may be waking up — try again in a moment.");});
-  }
-
-  function selectedTypeValue(){
-    var keys=Object.keys(selectedTypes),on=keys.filter(function(k){return selectedTypes[k];});
-    var all=on.length===keys.length;
-    if(region==="US")return all?["all"]:on;        // US expects an array
-    return all?"all":on[0];                          // EU expects a string
-  }
-
-  function runQuery(){
-    var val=citySel.value;if(!val)return;
-    hideErr();setLoading(true);
-    var body={city:val,minConfidence:parseInt(conf.value,10),clusterRadiusMeters:parseInt(rad.value,10),maxResults:1000,signalType:selectedTypeValue()};
-    if(region==="US")body.includeAccessibility=true;
-    fetch(APIS[region]+"/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
-      .then(function(r){if(!r.ok)return r.json().then(function(j){throw new Error(j.detail||("Error "+r.status));});return r.json();})
-      .then(function(d){render(d);})
-      .catch(function(e){showErr(e.message||"Something went wrong running the sample.");})
-      .finally(function(){setLoading(false);});
-  }
-
-  function setLoading(on){document.getElementById("veil").classList.toggle("on",on);var b=document.getElementById("run");b.disabled=on;b.innerHTML=on?'<span class="spin"></span>Running…':"Run sample";}
-  function showErr(m){var e=document.getElementById("err");e.textContent=m;e.style.display="block";}
-  function hideErr(){document.getElementById("err").style.display="none";}
-  function cityName(val){var o=citySel.querySelector('option[value="'+(window.CSS&&CSS.escape?CSS.escape(val):val)+'"]');return o?o.textContent:val;}
-
-  function render(d){
-    lastRecords=d.records||[];lastCity=cityName(citySel.value);
-    layer.clearLayers();markerById={};
-    var fmt=new Intl.NumberFormat("en-US");
-    document.getElementById("count").innerHTML='<span>'+fmt.format(d.count)+'</span>';
-    var sub=document.getElementById("sub");
-    if(d.capped_to_sample)sub.textContent="Sample of "+fmt.format(d.total_found)+" intersections in "+lastCity+". Full set on request.";
-    else sub.textContent="All "+fmt.format(d.count)+" intersections in "+lastCity+".";
-    var pts=[],listEl=document.getElementById("list");listEl.innerHTML="";
-    lastRecords.forEach(function(r,i){
-      if(r.lat==null||r.lon==null)return;
-      var col=colorFor(r.signal_type);
-      var m=L.circleMarker([r.lat,r.lon],{renderer:canvas,radius:4.5,weight:1,color:"#0d0e1c",fillColor:col,fillOpacity:.95});
-      m.on("click",function(){openDetail(r,m);setActive(i);});
-      m.addTo(layer);markerById[i]=m;pts.push([r.lat,r.lon]);
-      listEl.appendChild(rowFor(r,i,col));
-    });
-    if(pts.length)map.fitBounds(pts,{padding:[30,30],maxZoom:15});
-    var has=lastRecords.length>0;
-    document.getElementById("dlGeo").disabled=!has;document.getElementById("dlCsv").disabled=!has;
-  }
-
-  function rowFor(r,i,col){
-    var row=document.createElement("div");row.className="row";row.dataset.i=i;
-    var cf=r.confidence&&typeof r.confidence.score==="number"?Math.round(r.confidence.score*100)+"%":"";
-    var street=(r.street_names&&r.street_names.length)?r.street_names.join(" · "):(r.nearest_street||"Unnamed junction");
-    row.innerHTML='<span class="mk" style="background:'+col+'"></span><div class="meta"><div class="st">'+labelFor(r.signal_type)+'</div><div class="sub2">'+escapeHtml(street)+'</div></div>'+(cf?'<div class="cf">'+cf+'</div>':'');
-    row.onclick=function(){var m=markerById[i];if(m){map.setView(m.getLatLng(),16);openDetail(r,m);}setActive(i);};
-    return row;
-  }
-  function setActive(i){Array.prototype.forEach.call(document.querySelectorAll(".row"),function(el){el.classList.toggle("active",el.dataset.i==i);});var a=document.querySelector('.row[data-i="'+i+'"]');if(a)a.scrollIntoView({block:"nearest"});}
-
-  function openDetail(r,m){
-    var col=colorFor(r.signal_type);
-    var kv=function(k,v){return v==null||v===""?"":'<div class="kv"><span>'+k+'</span><span>'+v+'</span></div>';};
-    var tier=r.source_tier==="official+osm"?"official + OSM":(r.source_tier==="official"?"official":"OSM");
-    var html='<div class="pop"><h4>'+labelFor(r.signal_type)+'</h4><div class="pid">'+escapeHtml(r.intersection_id||"")+'</div>'+
-      '<div style="margin-bottom:8px"><span class="tag" style="background:'+col+'">'+labelFor(r.signal_type)+'</span></div>'+
-      kv("Coordinates",(r.lat!=null&&r.lon!=null)?r.lat.toFixed(5)+", "+r.lon.toFixed(5):null)+
-      kv("Nearest street",(r.street_names&&r.street_names.length)?r.street_names.join(" · "):r.nearest_street)+
-      (region==="US"?kv("Approach arms",(r.approaches&&r.approaches.length)?r.approaches.length:r.approach_count):"")+
-      (region==="US"?kv("Speed limit",r.speed_limit_mph!=null?(r.speed_limit_mph+" mph"):null):"")+
-      (region==="US"?kv("Source",tier):"")+
-      kv("Confidence",r.confidence&&r.confidence.score!=null?Math.round(r.confidence.score*100)+"%":null)+
-      kv("OSM edited",r.osm_last_edited?String(r.osm_last_edited).slice(0,10):null)+'</div>';
-    m.bindPopup(html,{maxWidth:290,autoPanPadding:[30,30]}).openPopup();
-  }
-  function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
-
-  /* downloads */
-  document.getElementById("dlGeo").onclick=function(){
-    var fc={type:"FeatureCollection",features:lastRecords.map(function(r){return {type:"Feature",geometry:{type:"Point",coordinates:[r.lon,r.lat]},properties:r};})};
-    dl(JSON.stringify(fc,null,2),slugName()+"_sample.geojson","application/geo+json");};
-  document.getElementById("dlCsv").onclick=function(){
-    var cols=region==="US"
-      ?["intersection_id","state_code","city_name","lat","lon","signal_type","approach_count","nearest_street","speed_limit_mph","source_tier"]
-      :["intersection_id","country","city_name","lat","lon","signal_type","nearest_street"];
-    var esc=function(v){v=v==null?"":String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
-    var rows=[cols.join(",")].concat(lastRecords.map(function(r){return cols.map(function(c){return esc(r[c]);}).join(",");}));
-    dl(rows.join("\n"),slugName()+"_sample.csv","text/csv");};
-  function slugName(){return (lastCity||"intersections").toLowerCase().replace(/[^a-z0-9]+/g,"_");}
-  function dl(text,name,type){var b=new Blob([text],{type:type}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},2000);}
-
-  /* region toggle */
-  var defaults={US:"dc-washington",EU:"DE-berlin"};
-  Array.prototype.forEach.call(document.querySelectorAll("#region button"),function(b){
-    b.onclick=function(){
-      if(b.getAttribute("aria-pressed")==="true")return;
-      region=b.getAttribute("data-r");
-      Array.prototype.forEach.call(document.querySelectorAll("#region button"),function(x){x.setAttribute("aria-pressed",String(x===b));});
-      document.getElementById("cityLab").textContent=region==="US"?"Search a US city":"Search a European city";
-      buildTypeChips();loadCities(defaults[region]);
-    };
-  });
-
-  /* init */
-  document.getElementById("run").onclick=runQuery;
-  citySel.onchange=runQuery;
-  buildTypeChips();
-  loadCities(defaults.US);
 })();
 </script>
 </body>
