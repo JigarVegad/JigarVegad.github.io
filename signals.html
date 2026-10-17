@@ -320,7 +320,7 @@ input[type=range]{width:100%;accent-color:var(--veh)}
         citySel.appendChild(og);
       });
       if(defaultKey&&citySel.querySelector('option[value="'+defaultKey+'"]'))citySel.value=defaultKey;
-      runQuery();
+      // No auto-run: the page loads instantly; the user picks a city and hits "Run sample".
     }).catch(function(){showErr(region==="EU"?"The Europe service is warming up — try again in a moment, or switch back to the US.":"Couldn't load the city list. The data service may be waking up — try again in a moment.");});
   }
 
