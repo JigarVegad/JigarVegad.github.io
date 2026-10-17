@@ -254,7 +254,7 @@
   var map=L.map("map",{zoomControl:true,preferCanvas:true,worldCopyJump:true}).setView([39.5,-98.35],4);
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",{attribution:'Tiles &copy; Esri &middot; Data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',maxZoom:16}).addTo(map);
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",{maxZoom:16}).addTo(map);
-  var canvas=L.canvas({padding:.5});
+  var canvas=L.canvas({padding:.5,tolerance:6});
   var layer=L.layerGroup().addTo(map);
 
   // ---- state ----
@@ -396,7 +396,7 @@
       '<div class="pid">'+escapeHtml(r.intersection_id||"")+'</div>'+
       '<div style="margin-bottom:8px"><span class="tag" style="background:'+col+'">'+labelFor(r.signal_type)+'</span></div>'+
       kv("Coordinates",r.lat.toFixed(5)+", "+r.lon.toFixed(5))+
-      kv("Approach arms",r.approach_count)+
+      kv("Approach arms",(r.approaches&&r.approaches.length)?r.approaches.length:r.approach_count)+
       kv("Speed limit",r.speed_limit_mph!=null?(r.speed_limit_mph+" mph"):null)+
       kv("Source",tier)+
       kv("Confidence",r.confidence&&r.confidence.score!=null?Math.round(r.confidence.score*100)+"%":null)+
