@@ -1,32 +1,433 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MobilityMetric</title>
-  <meta name="description" content="Live, map-based demos of open mobility datasets: signalized intersections, low-emission zones, and EV charging.">
-  <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: #0b0f14; color: #e6edf3; text-align: center; padding: 24px;
-    }
-    .wrap { max-width: 560px; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; background: #3fb950; display: inline-block; margin-right: 8px; vertical-align: middle; }
-    h1 { font-size: clamp(2rem, 6vw, 3rem); margin: 0 0 12px; letter-spacing: -0.02em; }
-    p { color: #9aa7b4; line-height: 1.6; margin: 0 auto 10px; }
-    .tag { font-size: 0.85rem; color: #6e7b88; margin-top: 28px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MobilityMetric — US signalized intersections</title>
+<meta name="description" content="Search any of 225 US cities and preview real signalized-intersection data on a map: signal type, approach geometry, speed limits, ADA flags, and confidence. A live sample from an OpenStreetMap-derived dataset.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<style>
+  :root{
+    --ink:#0E1116; --panel:#161B22; --panel-2:#1C232D; --line:#243040;
+    --text:#E6EDF3; --muted:#8B99A6; --muted-2:#5E6B78;
+    --amber:#FFB224; --amber-dim:#3a2f16;
+    --veh:#FFB224; --ped:#35C4D6; --both:#46C06A; --hawk:#E0607E; --lvl:#E5484D; --unk:#8B99A6;
+    --rail:360px;
+    --f-display:"Space Grotesk",system-ui,sans-serif;
+    --f-ui:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--ink);color:var(--text);
+    font-family:var(--f-ui);font-size:14px;line-height:1.5;
+    font-feature-settings:"tnum" 1,"cv05" 1;
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+  button{font-family:inherit}
+  a{color:var(--amber);text-decoration:none}
+
+  /* ---------- top bar ---------- */
+  header{
+    height:56px;display:flex;align-items:center;gap:16px;
+    padding:0 18px;border-bottom:1px solid var(--line);background:var(--panel);
+    position:relative;z-index:1200;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+  .brand b{font-family:var(--f-display);font-weight:700;font-size:19px;letter-spacing:-.01em}
+  .brand b span{color:var(--amber)}
+  .brand small{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .spacer{flex:1}
+  .req{
+    display:inline-flex;align-items:center;height:34px;padding:0 15px;border-radius:8px;
+    background:var(--amber);color:#17130a;font-weight:600;font-size:13px;border:0;cursor:pointer;
+  }
+  .req:hover{filter:brightness(1.07)}
+
+  /* ---------- app shell ---------- */
+  .app{display:flex;height:calc(100vh - 56px);height:calc(100dvh - 56px)}
+  aside{
+    width:var(--rail);min-width:var(--rail);height:100%;overflow-y:auto;
+    border-right:1px solid var(--line);background:var(--panel);
+    display:flex;flex-direction:column;
+  }
+  .map-wrap{flex:1;position:relative;min-width:0}
+  #map{position:absolute;inset:0;background:#0b0e12}
+
+  /* ---------- control rail ---------- */
+  .rail-pad{padding:18px 18px 10px}
+  .field{margin-bottom:14px}
+  label.lab{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  select,input[type=search]{
+    width:100%;height:40px;padding:0 12px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel-2);color:var(--text);font-family:inherit;font-size:14px;appearance:none;
+  }
+  select:focus,input:focus,button:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+  .select-wrap{position:relative}
+  .select-wrap::after{content:"";position:absolute;right:13px;top:16px;width:8px;height:8px;
+    border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);pointer-events:none}
+
+  .types{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--muted);cursor:pointer;font-size:12.5px;user-select:none;
+  }
+  .chip .dot{width:9px;height:9px;border-radius:50%}
+  .chip[aria-pressed=true]{color:var(--text);border-color:var(--muted-2);background:#222b36}
+
+  details.adv{border-top:1px solid var(--line);margin-top:4px}
+  details.adv summary{list-style:none;cursor:pointer;padding:12px 0 10px;color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:8px}
+  details.adv summary::-webkit-details-marker{display:none}
+  details.adv summary .tw{width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
+  details.adv[open] summary .tw{transform:rotate(45deg)}
+  .adv-body{padding-bottom:6px}
+  .range-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .range-row b{font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--amber)}
+  .hint{color:var(--muted-2);font-size:11.5px;margin-top:3px}
+
+  .run{
+    width:100%;height:44px;border-radius:10px;border:0;cursor:pointer;margin-top:4px;
+    background:var(--amber);color:#17130a;font-weight:600;font-size:15px;font-family:var(--f-display);
+    display:flex;align-items:center;justify-content:center;gap:10px;
+  }
+  .run:hover{filter:brightness(1.07)}
+  .run:disabled{opacity:.55;cursor:default;filter:none}
+  .spin{width:16px;height:16px;border:2px solid #17130a55;border-top-color:#17130a;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- results ---------- */
+  .result-head{padding:14px 18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--panel-2)}
+  .count{font-family:var(--f-display);font-size:26px;font-weight:700;line-height:1;letter-spacing:-.02em}
+  .count span{color:var(--amber)}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:5px}
+  .dl{display:flex;gap:8px;margin-top:12px}
+  .dl button{flex:1;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:12.5px;cursor:pointer}
+  .dl button:hover{border-color:var(--muted-2);background:#222b36}
+  .dl button:disabled{opacity:.4;cursor:default}
+
+  .list{flex:1;overflow-y:auto;min-height:80px}
+  .row{padding:11px 18px;border-bottom:1px solid #1b2230;cursor:pointer;display:flex;gap:11px;align-items:flex-start}
+  .row:hover{background:var(--panel-2)}
+  .row.active{background:#222b36;box-shadow:inset 3px 0 0 var(--amber)}
+  .row .mk{width:10px;height:10px;border-radius:50%;margin-top:4px;flex:none}
+  .row .meta{min-width:0;flex:1}
+  .row .st{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .sub2{color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .cf{font-size:11px;color:var(--muted-2);flex:none;margin-top:2px}
+
+  .legend{padding:12px 18px 18px;border-top:1px solid var(--line);color:var(--muted);font-size:11.5px}
+  .legend .lg{display:flex;align-items:center;gap:7px;margin-top:6px}
+  .legend .lg .dot{width:9px;height:9px;border-radius:50%}
+  .foot{padding:14px 18px 22px;color:var(--muted-2);font-size:11px;border-top:1px solid var(--line);line-height:1.6}
+  .foot a{color:var(--muted)}
+
+  /* ---------- detail popup ---------- */
+  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px #0008}
+  .leaflet-popup-tip{background:var(--panel);border:1px solid var(--line)}
+  .leaflet-popup-content{margin:13px 15px;font-family:var(--f-ui);width:260px!important}
+  .pop h4{margin:0 0 2px;font-family:var(--f-display);font-size:15px}
+  .pop .pid{color:var(--muted-2);font-size:10.5px;margin-bottom:9px;word-break:break-all}
+  .pop .kv{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid #1b2230;font-size:12px}
+  .pop .kv span:first-child{color:var(--muted)}
+  .pop .kv span:last-child{text-align:right}
+  .pop .appr{margin-top:8px;border-top:1px solid #1b2230;padding-top:7px}
+  .pop .appr .a{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);padding:2px 0}
+  .pop .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:600;color:#17130a}
+
+  .err{margin:10px 18px;padding:11px 13px;border:1px solid #5a2b2b;background:#2a1718;color:#ffb3b3;border-radius:9px;font-size:12.5px;display:none}
+
+  /* loading veil on map */
+  .veil{position:absolute;inset:0;background:#0b0e12cc;display:none;align-items:center;justify-content:center;z-index:800;color:var(--muted);font-size:13px;gap:10px}
+  .veil.on{display:flex}
+  .veil .spin{border-color:#8b99a655;border-top-color:var(--amber)}
+
+  /* mobile toggle */
+  .railtoggle{display:none}
+  @media (max-width:820px){
+    body{overflow:auto}
+    .app{flex-direction:column;height:auto}
+    aside{width:100%;min-width:0;border-right:0;border-bottom:1px solid var(--line);max-height:none}
+    .map-wrap{height:62vh;height:62dvh;flex:none}
+    .brand small{display:none}
+    .list{max-height:300px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>MobilityMetric</h1>
-    <p><span class="dot"></span>Live demos coming soon.</p>
-    <p>Map-based previews of open mobility datasets — signalized intersections, low-emission zones, and EV charging.</p>
-    <p class="tag">Data © OpenStreetMap contributors, ODbL 1.0</p>
+<header>
+  <div class="brand">
+    <b>Mobility<span>Metric</span></b>
+    <small>Signalized intersections, from OpenStreetMap</small>
   </div>
+  <div class="spacer"></div>
+  <button class="req" id="reqTop">Request full dataset</button>
+</header>
+
+<div class="app">
+  <aside>
+    <div class="rail-pad">
+      <div class="field">
+        <label class="lab" for="city">Search a US city</label>
+        <div class="select-wrap">
+          <select id="city" aria-label="City"></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="lab">Signal types</label>
+        <div class="types" id="types"></div>
+      </div>
+
+      <details class="adv">
+        <summary><span class="tw"></span>Advanced options</summary>
+        <div class="adv-body">
+          <div class="field">
+            <div class="range-row"><span class="lab" style="margin:0">Minimum confidence</span><b id="confVal">0%</b></div>
+            <input type="range" id="conf" min="0" max="100" step="5" value="0">
+            <div class="hint">Drop intersections the data is less sure about.</div>
+          </div>
+          <div class="field">
+            <div class="range-row"><span class="lab" style="margin:0">Cluster radius</span><b id="radVal">40 m</b></div>
+            <input type="range" id="rad" min="20" max="90" step="5" value="40">
+            <div class="hint">How close signals group into one intersection.</div>
+          </div>
+        </div>
+      </details>
+
+      <button class="run" id="run">Run sample</button>
+    </div>
+
+    <div class="err" id="err"></div>
+
+    <div class="result-head">
+      <div class="count" id="count">—</div>
+      <div class="sub" id="sub">Pick a city and run a sample.</div>
+      <div class="dl">
+        <button id="dlGeo" disabled>Download GeoJSON</button>
+        <button id="dlCsv" disabled>Download CSV</button>
+      </div>
+    </div>
+
+    <div class="list" id="list"></div>
+
+    <div class="legend" id="legend"></div>
+
+    <div class="foot">
+      A capped 1,000-record sample of a larger, continuously-maintained dataset.<br>
+      Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, ODbL 1.0.<br>
+      Built by Jigar Vegad.
+    </div>
+  </aside>
+
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="veil" id="veil"><div class="spin"></div><span>Extracting intersections…</span></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+(function(){
+  "use strict";
+  var API = "https://api.mobilitymetric.me";
+  var CONTACT = "mailto:vegad.jigar044@gmail.com?subject=MobilityMetric%20%E2%80%94%20full%20dataset%20enquiry&body=Hi%20Jigar%2C%20I%20saw%20the%20MobilityMetric%20demo%20and%20would%20like%20to%20talk%20about%20the%20full%20dataset.";
+  document.getElementById("reqTop").onclick=function(){location.href=CONTACT;};
+
+  var TYPES=[
+    {v:"vehicular_junction",label:"Vehicular",color:getCss("--veh")},
+    {v:"pedestrian_crossing",label:"Pedestrian",color:getCss("--ped")},
+    {v:"vehicular_and_pedestrian",label:"Both",color:getCss("--both")},
+    {v:"hawk_signal",label:"HAWK",color:getCss("--hawk")},
+    {v:"level_crossing",label:"Level crossing",color:getCss("--lvl")}
+  ];
+  function getCss(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+  function colorFor(t){var m={vehicular_junction:"--veh",pedestrian_crossing:"--ped",vehicular_and_pedestrian:"--both",hawk_signal:"--hawk",level_crossing:"--lvl"};return getCss(m[t]||"--unk");}
+  function labelFor(t){var f=TYPES.filter(function(x){return x.v===t;});return f.length?f[0].label:(t||"signal").replace(/_/g," ");}
+
+  // ---- map ----
+  var map=L.map("map",{zoomControl:true,preferCanvas:true,worldCopyJump:true}).setView([39.5,-98.35],4);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains:"abcd",maxZoom:19
+  }).addTo(map);
+  var canvas=L.canvas({padding:.5});
+  var layer=L.layerGroup().addTo(map);
+
+  // ---- state ----
+  var selectedTypes={};TYPES.forEach(function(t){selectedTypes[t.v]=true;});
+  var lastRecords=[],lastCity="",markerById={};
+
+  // ---- build type chips ----
+  var typesEl=document.getElementById("types");
+  TYPES.forEach(function(t){
+    var b=document.createElement("button");
+    b.className="chip";b.type="button";b.setAttribute("aria-pressed","true");
+    b.innerHTML='<span class="dot" style="background:'+t.color+'"></span>'+t.label;
+    b.onclick=function(){
+      var on=b.getAttribute("aria-pressed")==="true";
+      // keep at least one selected
+      var count=Object.keys(selectedTypes).filter(function(k){return selectedTypes[k];}).length;
+      if(on&&count===1)return;
+      selectedTypes[t.v]=!on;b.setAttribute("aria-pressed",String(!on));
+    };
+    typesEl.appendChild(b);
+  });
+
+  // ---- legend ----
+  var leg=document.getElementById("legend");
+  leg.innerHTML="<div style='color:var(--text)'>Signal type</div>"+TYPES.map(function(t){
+    return "<div class='lg'><span class='dot' style='background:"+t.color+"'></span>"+t.label+"</div>";
+  }).join("");
+
+  // ---- advanced ----
+  var conf=document.getElementById("conf"),rad=document.getElementById("rad");
+  conf.oninput=function(){document.getElementById("confVal").textContent=conf.value+"%";};
+  rad.oninput=function(){document.getElementById("radVal").textContent=rad.value+" m";};
+
+  // ---- load cities ----
+  var citySel=document.getElementById("city");
+  fetch(API+"/cities").then(function(r){return r.json();}).then(function(d){
+    var byState={};
+    d.cities.forEach(function(c){(byState[c.state_name]=byState[c.state_name]||[]).push(c);});
+    Object.keys(byState).sort().forEach(function(sn){
+      var og=document.createElement("optgroup");og.label=sn;
+      byState[sn].forEach(function(c){
+        var o=document.createElement("option");o.value=c.slug;o.textContent=c.name;
+        o.dataset.center=c.center.join(",");og.appendChild(o);
+      });
+      citySel.appendChild(og);
+    });
+    // default to a marquee city, then auto-run so the map lands alive
+    citySel.value="dc-washington";
+    runQuery();
+  }).catch(function(){showErr("Couldn't load the city list. The data service may be waking up — try again in a moment.");});
+
+  // ---- run ----
+  document.getElementById("run").onclick=runQuery;
+  citySel.onchange=runQuery;
+
+  function selectedTypeArray(){
+    var all=Object.keys(selectedTypes).every(function(k){return selectedTypes[k];});
+    if(all)return ["all"];
+    return Object.keys(selectedTypes).filter(function(k){return selectedTypes[k];});
+  }
+
+  function runQuery(){
+    var slug=citySel.value;if(!slug)return;
+    hideErr();setLoading(true);
+    var body={city:slug,signalType:selectedTypeArray(),minConfidence:parseInt(conf.value,10),
+              clusterRadiusMeters:parseInt(rad.value,10),maxResults:1000,includeAccessibility:true};
+    fetch(API+"/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+      .then(function(r){if(!r.ok)return r.json().then(function(j){throw new Error(j.detail||("Error "+r.status));});return r.json();})
+      .then(function(d){render(d,slug);})
+      .catch(function(e){showErr(e.message||"Something went wrong running the sample.");})
+      .finally(function(){setLoading(false);});
+  }
+
+  function setLoading(on){
+    document.getElementById("veil").classList.toggle("on",on);
+    var btn=document.getElementById("run");btn.disabled=on;
+    btn.innerHTML=on?'<span class="spin"></span>Running…':"Run sample";
+  }
+  function showErr(m){var e=document.getElementById("err");e.textContent=m;e.style.display="block";}
+  function hideErr(){document.getElementById("err").style.display="none";}
+
+  function cityName(slug){
+    var o=citySel.querySelector('option[value="'+slug+'"]');return o?o.textContent:slug;
+  }
+
+  function render(d,slug){
+    lastRecords=d.records||[];lastCity=cityName(slug);
+    layer.clearLayers();markerById={};
+    var fmt=new Intl.NumberFormat("en-US");
+    document.getElementById("count").innerHTML='<span>'+fmt.format(d.count)+'</span>';
+    var sub=document.getElementById("sub");
+    if(d.capped_to_sample){sub.textContent="Sample of "+fmt.format(d.total_found)+" intersections in "+lastCity+". Full set on request.";}
+    else{sub.textContent="All "+fmt.format(d.count)+" intersections in "+lastCity+".";}
+
+    var pts=[];var listEl=document.getElementById("list");listEl.innerHTML="";
+    lastRecords.forEach(function(r,i){
+      if(r.lat==null||r.lon==null)return;
+      var col=colorFor(r.signal_type);
+      var m=L.circleMarker([r.lat,r.lon],{renderer:canvas,radius:4.5,weight:1,color:"#0b0e12",fillColor:col,fillOpacity:.95});
+      m.on("click",function(){openDetail(r,m);setActive(i);});
+      m.addTo(layer);markerById[i]=m;pts.push([r.lat,r.lon]);
+      listEl.appendChild(rowFor(r,i,col));
+    });
+    if(pts.length){map.fitBounds(pts,{padding:[30,30],maxZoom:15});}
+    var has=lastRecords.length>0;
+    document.getElementById("dlGeo").disabled=!has;document.getElementById("dlCsv").disabled=!has;
+  }
+
+  function rowFor(r,i,col){
+    var row=document.createElement("div");row.className="row";row.dataset.i=i;
+    var cf=r.confidence&&typeof r.confidence.score==="number"?Math.round(r.confidence.score*100)+"%":"";
+    var street=(r.street_names&&r.street_names.length)?r.street_names.join(" · "):(r.nearest_street||"Unnamed junction");
+    row.innerHTML='<span class="mk" style="background:'+col+'"></span>'+
+      '<div class="meta"><div class="st">'+labelFor(r.signal_type)+'</div>'+
+      '<div class="sub2">'+escapeHtml(street)+'</div></div>'+
+      (cf?'<div class="cf">'+cf+'</div>':'');
+    row.onclick=function(){var m=markerById[i];if(m){map.setView(m.getLatLng(),16);openDetail(r,m);}setActive(i);};
+    return row;
+  }
+  function setActive(i){
+    Array.prototype.forEach.call(document.querySelectorAll(".row"),function(el){el.classList.toggle("active",el.dataset.i==i);});
+    var act=document.querySelector('.row[data-i="'+i+'"]');if(act)act.scrollIntoView({block:"nearest"});
+  }
+
+  function openDetail(r,m){
+    var col=colorFor(r.signal_type);
+    var acc=r.accessibility?Object.keys(r.accessibility).filter(function(k){return r.accessibility[k]===true;}):[];
+    var kv=function(k,v){return v==null||v===""?"":'<div class="kv"><span>'+k+'</span><span>'+v+'</span></div>';};
+    var appr="";
+    if(r.approaches&&r.approaches.length){
+      appr='<div class="appr"><div style="color:var(--muted);font-size:11px;margin-bottom:3px">Approaches ('+r.approaches.length+' arms)</div>'+
+        r.approaches.map(function(a){
+          var sp=a.speed_kmh!=null?(Math.round(a.speed_kmh*0.621371)+" mph"):"—";
+          return '<div class="a"><span>'+Math.round(a.bearing)+'° '+escapeHtml(a.street||a.highway||"")+'</span><span>'+sp+'</span></div>';
+        }).join("")+'</div>';
+    }
+    var tier=r.source_tier==="official+osm"?"official + OSM":(r.source_tier==="official"?"official":"OSM");
+    var html='<div class="pop"><h4>'+labelFor(r.signal_type)+'</h4>'+
+      '<div class="pid">'+escapeHtml(r.intersection_id||"")+'</div>'+
+      '<div style="margin-bottom:8px"><span class="tag" style="background:'+col+'">'+labelFor(r.signal_type)+'</span></div>'+
+      kv("Coordinates",r.lat.toFixed(5)+", "+r.lon.toFixed(5))+
+      kv("Approach arms",r.approach_count)+
+      kv("Speed limit",r.speed_limit_mph!=null?(r.speed_limit_mph+" mph"):null)+
+      kv("Source",tier)+
+      kv("Confidence",r.confidence&&r.confidence.score!=null?Math.round(r.confidence.score*100)+"%":null)+
+      kv("ADA features",acc.length?acc.length+" mapped":null)+
+      kv("OSM edited",r.osm_last_edited?String(r.osm_last_edited).slice(0,10):null)+
+      appr+'</div>';
+    m.bindPopup(html,{maxWidth:300,autoPanPadding:[30,30]}).openPopup();
+  }
+
+  function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
+
+  // ---- downloads ----
+  document.getElementById("dlGeo").onclick=function(){
+    var fc={type:"FeatureCollection",features:lastRecords.map(function(r){
+      return {type:"Feature",geometry:{type:"Point",coordinates:[r.lon,r.lat]},properties:r};})};
+    dl(JSON.stringify(fc,null,2),slugName()+"_sample.geojson","application/geo+json");
+  };
+  document.getElementById("dlCsv").onclick=function(){
+    var cols=["intersection_id","state_code","city_name","lat","lon","signal_type","approach_count","nearest_street","speed_limit_mph","source_tier"];
+    var esc=function(v){v=v==null?"":String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+    var rows=[cols.join(",")].concat(lastRecords.map(function(r){return cols.map(function(c){return esc(r[c]);}).join(",");}));
+    dl(rows.join("\n"),slugName()+"_sample.csv","text/csv");
+  };
+  function slugName(){return (lastCity||"intersections").toLowerCase().replace(/[^a-z0-9]+/g,"_");}
+  function dl(text,name,type){
+    var b=new Blob([text],{type:type}),u=URL.createObjectURL(b),a=document.createElement("a");
+    a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},2000);
+  }
+})();
+</script>
 </body>
 </html>
