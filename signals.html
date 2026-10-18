@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Traffic Signals — live map · MobilityMetric</title>
-<meta name="description" content="Search any of 225 US cities or 271 European cities and preview up to 1,000 real signalized intersections on a live map — signal type, nearest street, confidence. Download GeoJSON or CSV.">
+<meta name="description" content="Search any of 225 US cities or 271 European cities and preview up to 500 real signalized intersections on a live map — signal type, nearest street, confidence. Download GeoJSON or CSV.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1300px;margin:0 auto;padding:0 20px}
+.wrap{max-width:1480px;margin:0 auto;padding:0 20px}
 a{color:inherit;text-decoration:none}
 h1{font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;margin:0}
 .eyebrow{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600}
@@ -47,22 +47,23 @@ header{position:sticky;top:0;z-index:1000;background:#F2F4F8d9;backdrop-filter:b
 .prod-item.disabled:hover{background:transparent}
 .prod-item.current{background:#fff7ec}
 
-.toolhead{padding:26px 0 8px}
-.toolhead h1{font-size:clamp(1.6rem,3vw,2.3rem);margin:.4rem 0 0}
-.toolhead p{color:var(--muted);font-size:1rem;margin:.6rem 0 0;max-width:62ch}
+.toolhead{padding:22px 0 6px}
+.toolhead h1{font-size:clamp(1.5rem,2.6vw,2.1rem);margin:.4rem 0 0}
+.toolhead p{color:var(--muted);font-size:.98rem;margin:.5rem 0 0;max-width:68ch}
 
-main{padding-bottom:40px}
-.explorer{margin-top:20px;display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:stretch}
+main{padding-bottom:36px}
+/* narrow control rail on the left, map takes the rest */
+.explorer{margin-top:18px;display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:stretch}
 .explorer>*{min-width:0}
-@media(max-width:900px){.explorer{grid-template-columns:1fr}}
-.ctl{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;align-self:start}
+@media(max-width:860px){.explorer{grid-template-columns:1fr}}
+.ctl{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:13px;min-width:0;align-self:start}
 .region{display:flex;gap:4px;background:#eef1f7;border:1px solid var(--line);border-radius:12px;padding:4px}
-.region button{flex:1;height:38px;border:0;background:transparent;border-radius:9px;color:var(--muted);font-weight:600;font-size:.92rem;cursor:pointer;transition:background .15s,color .15s}
+.region button{flex:1;height:38px;border:0;background:transparent;border-radius:9px;color:var(--muted);font-weight:600;font-size:.9rem;cursor:pointer;transition:background .15s,color .15s}
 .region button[aria-pressed=true]{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(20,22,40,.12)}
 .lab{display:block;font-size:.78rem;color:var(--muted);margin-bottom:6px;font-weight:600}
 .select-wrap{position:relative}
-select,input[type=search]{width:100%;height:42px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-family:inherit;font-size:.95rem;appearance:none}
-select:focus,input:focus,button:focus-visible{outline:2px solid var(--veh);outline-offset:1px}
+select{width:100%;height:42px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-family:inherit;font-size:.95rem;appearance:none}
+select:focus,button:focus-visible{outline:2px solid var(--veh);outline-offset:1px}
 .select-wrap::after{content:"";position:absolute;right:14px;top:17px;width:8px;height:8px;border-right:2px solid var(--faint);border-bottom:2px solid var(--faint);transform:rotate(45deg);pointer-events:none}
 .types{display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer;font-size:.8rem;user-select:none}
@@ -90,38 +91,48 @@ input[type=range]{width:100%;accent-color:var(--veh)}
 .dl button:hover{border-color:#cfd3df}
 .dl button:disabled{opacity:.45;cursor:default}
 .err{margin-top:10px;padding:11px 13px;border:1px solid #f3c6c6;background:#fdeeee;color:#b4332f;border-radius:10px;font-size:.82rem;display:none}
-.legend{margin-top:4px;color:var(--muted);font-size:.74rem;display:flex;flex-wrap:wrap;gap:4px 14px}
+.legend{margin-top:2px;color:var(--muted);font-size:.74rem;display:flex;flex-wrap:wrap;gap:4px 14px}
 .legend .lg{display:flex;align-items:center;gap:6px}
 .legend .dot{width:9px;height:9px;border-radius:50%}
 
-.mapcol{display:flex;flex-direction:column;gap:12px;min-height:72vh;min-width:0}
-.mappanel{position:relative;flex:1;border-radius:18px;overflow:hidden;background:var(--ink-panel);box-shadow:0 40px 80px -46px rgba(17,18,38,.55);min-height:60vh}
+/* map fills the right side, taller */
+.mapcol{display:flex;flex-direction:column;min-height:78vh;min-width:0}
+.mappanel{position:relative;flex:1;border-radius:18px;overflow:hidden;background:var(--ink-panel);box-shadow:0 40px 80px -46px rgba(17,18,38,.55);min-height:72vh}
 #map{position:absolute;inset:0;background:#0d0e1c}
 .veil{position:absolute;inset:0;background:#0d0e1ccc;display:none;align-items:center;justify-content:center;z-index:800;color:#aab;font-size:.85rem;gap:10px}
 .veil.on{display:flex}
 .veil .spin{border-color:#ffffff33;border-top-color:var(--veh)}
-.maphint{position:absolute;right:12px;top:12px;z-index:700;color:#aab;font-size:.7rem;background:#ffffff14;border:1px solid #ffffff22;padding:4px 9px;border-radius:999px;backdrop-filter:blur(6px);pointer-events:none;transition:opacity .3s}
-.rowlist{max-height:200px;overflow-y:auto;background:var(--paper);border:1px solid var(--line);border-radius:14px}
-.row{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:11px;align-items:flex-start}
-.row:last-child{border-bottom:0}
-.row:hover{background:var(--bg)}
-.row.active{background:#fff7ec;box-shadow:inset 3px 0 0 var(--veh)}
-.row .mk{width:10px;height:10px;border-radius:50%;margin-top:4px;flex:none}
-.row .meta{min-width:0;flex:1}
-.row .st{font-weight:600;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .sub2{color:var(--muted);font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .cf{font-size:.72rem;color:var(--faint);flex:none;margin-top:2px}
+.maphint{position:absolute;left:12px;bottom:12px;z-index:700;color:#aab;font-size:.7rem;background:#ffffff14;border:1px solid #ffffff22;padding:4px 9px;border-radius:999px;backdrop-filter:blur(6px);pointer-events:none;transition:opacity .3s}
 
-.leaflet-popup-content-wrapper{background:var(--ink-panel-2);color:#e7e9f6;border:1px solid #2a2c52;border-radius:12px;box-shadow:0 18px 40px #0007}
-.leaflet-popup-tip{background:var(--ink-panel-2);border:1px solid #2a2c52}
-.leaflet-popup-content{margin:13px 15px;font-family:var(--font-body);width:248px!important}
-.pop h4{margin:0 0 2px;font-family:var(--font-display);font-size:.95rem}
-.pop .pid{color:#7a7ca8;font-size:.64rem;margin-bottom:9px;word-break:break-all}
-.pop .kv{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid #2a2c52;font-size:.75rem}
-.pop .kv span:first-child{color:#9a9cc4}
-.pop .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.64rem;font-weight:700;color:#17130a}
-.pop .gmaps{display:block;margin-top:11px;text-align:center;background:var(--veh);color:#241603;font-weight:700;font-size:.74rem;padding:8px;border-radius:9px;text-decoration:none}
-.pop .gmaps:hover{filter:brightness(1.05)}
+/* pinpoint markers */
+.pin-wrap{background:none;border:0}
+.pin{filter:drop-shadow(0 3px 4px rgba(0,0,0,.45));transition:transform .12s ease}
+.pin-wrap.sel{z-index:1000!important}
+.pin-wrap.sel .pin{transform:scale(1.35)}
+
+/* right-side detail panel, floating over the map */
+.detail{position:absolute;top:12px;right:12px;bottom:12px;width:300px;max-width:calc(100% - 24px);z-index:900;
+  background:var(--ink-panel-2);border:1px solid #2a2c52;border-radius:14px;box-shadow:0 24px 60px -20px #000a;
+  color:#e7e9f6;display:flex;flex-direction:column;overflow:hidden;
+  transform:translateX(18px);opacity:0;pointer-events:none;transition:transform .2s ease,opacity .2s ease}
+.detail.on{transform:none;opacity:1;pointer-events:auto}
+.detail .dhead{display:flex;align-items:flex-start;gap:10px;padding:15px 15px 12px}
+.detail .dhead h4{margin:0;font-family:var(--font-display);font-size:1rem;line-height:1.15}
+.detail .dhead .pid{color:#7a7ca8;font-size:.62rem;margin-top:3px;word-break:break-all}
+.detail .dx{margin-left:auto;flex:none;width:26px;height:26px;border-radius:8px;border:1px solid #ffffff22;background:#ffffff10;color:#cfd2ea;cursor:pointer;font-size:.8rem;line-height:1}
+.detail .dx:hover{background:#ffffff1f}
+.detail .dbody{padding:0 15px 15px;overflow-y:auto}
+.detail .tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.64rem;font-weight:700;color:#17130a;margin-bottom:10px}
+.detail .kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #2a2c52;font-size:.78rem}
+.detail .kv span:first-child{color:#9a9cc4}
+.detail .kv span:last-child{text-align:right}
+.detail .gmaps{display:block;margin-top:14px;text-align:center;background:var(--veh);color:#241603;font-weight:700;font-size:.78rem;padding:10px;border-radius:10px}
+.detail .gmaps:hover{filter:brightness(1.05)}
+.detail .empty{padding:22px 16px;color:#9a9cc4;font-size:.84rem;line-height:1.5}
+@media(max-width:620px){
+  .detail{top:auto;left:12px;right:12px;bottom:12px;width:auto;max-height:58%;transform:translateY(18px)}
+  .detail.on{transform:none}
+}
 
 .modal{position:fixed;inset:0;z-index:2000;display:none;align-items:flex-start;justify-content:center;background:#13141cc0;padding:40px 16px;overflow-y:auto;backdrop-filter:blur(4px)}
 .modal.on{display:flex}
@@ -162,8 +173,8 @@ input[type=range]{width:100%;accent-color:var(--veh)}
 <main class="wrap">
   <div class="toolhead">
     <p class="eyebrow">Traffic Signals · live sample</p>
-    <h1>Search any city. See 1,000 real intersections.</h1>
-    <p>Pick a region and a city, run a free sample, and inspect every intersection on the map — then download it as GeoJSON or CSV. A capped 1,000-record sample of a larger, continuously-maintained dataset.</p>
+    <h1>Search any city. See up to 500 real intersections.</h1>
+    <p>Pick a region and a city, run a free sample, and click any intersection on the map to inspect it — then download it as GeoJSON or CSV. A capped 500-record sample of a larger, continuously-maintained dataset.</p>
   </div>
 
   <div class="explorer">
@@ -173,7 +184,7 @@ input[type=range]{width:100%;accent-color:var(--veh)}
         <button data-r="EU" aria-pressed="false">Europe</button>
       </div>
       <div>
-        <label class="lab" for="city" id="cityLab">Search a US city</label>
+        <label class="lab" for="city" id="cityLab">City</label>
         <div class="select-wrap"><select id="city" aria-label="City"></select></div>
       </div>
       <div>
@@ -207,10 +218,12 @@ input[type=range]{width:100%;accent-color:var(--veh)}
     <div class="mapcol">
       <div class="mappanel">
         <div id="map"></div>
-        <div class="maphint" id="maphint">scroll to zoom · drag to pan</div>
+        <div class="maphint" id="maphint">scroll to zoom · drag to pan · click a pin for details</div>
+        <div class="detail" id="detail" aria-live="polite">
+          <div class="dbody"><div class="empty">Run a sample, then click any intersection pin on the map to see its details here.</div></div>
+        </div>
         <div class="veil" id="veil"><div class="spin"></div><span>Extracting intersections…</span></div>
       </div>
-      <div class="rowlist" id="list"></div>
     </div>
   </div>
 </main>
@@ -219,7 +232,7 @@ input[type=range]{width:100%;accent-color:var(--veh)}
   <div class="sheet">
     <button class="btn btn-ghost x" id="aboutClose" aria-label="Close">Close</button>
     <h2>About this data</h2>
-    <p class="lead">One clean record per signalized intersection, extracted from OpenStreetMap and deduplicated into one point per real junction — 225 US cities across all 50 states and DC, plus 271 cities across 41 European countries. This page runs a live 1,000-record sample; the full dataset is maintained continuously.</p>
+    <p class="lead">One clean record per signalized intersection, extracted from OpenStreetMap and deduplicated into one point per real junction — 225 US cities across all 50 states and DC, plus 271 cities across 41 European countries. This page runs a live 500-record sample; the full dataset is maintained continuously.</p>
     <h3>How the data is built</h3>
     <ol class="steps">
       <li>Pull traffic-signal nodes from OpenStreetMap for the area.</li>
@@ -241,11 +254,12 @@ input[type=range]{width:100%;accent-color:var(--veh)}
 <script>
 (function(){
   "use strict";
+  var MAX=500;
   var aboutEl=document.getElementById("about");
   document.getElementById("aboutBtn").onclick=function(){aboutEl.classList.add("on");};
   document.getElementById("aboutClose").onclick=function(){aboutEl.classList.remove("on");};
   aboutEl.onclick=function(e){if(e.target===aboutEl)aboutEl.classList.remove("on");};
-  document.addEventListener("keydown",function(e){if(e.key==="Escape")aboutEl.classList.remove("on");});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"){aboutEl.classList.remove("on");hideDetail();}});
 
   // products dropdown
   var pb=document.getElementById("prodBtn"),pm=document.getElementById("prodMenu");
@@ -275,21 +289,28 @@ input[type=range]{width:100%;accent-color:var(--veh)}
   function colorFor(t){return PALETTE[COLORKEY[t]||"unk"];}
   function labelFor(t){var all=TYPES.US.concat(TYPES.EU),f=all.filter(function(x){return x.v===t;});return f.length?f[0].label:(t||"signal").replace(/_/g," ");}
 
-  var region="US",selectedTypes={},lastRecords=[],lastCity="",markerById={};
+  var region="US",selectedTypes={},lastRecords=[],lastCity="",selMarker=null;
 
-  var map=L.map("map",{zoomControl:true,preferCanvas:true,worldCopyJump:true,scrollWheelZoom:true}).setView([39.5,-98.35],4);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",{attribution:'Tiles &copy; Esri &middot; Data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',maxZoom:18}).addTo(map);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",{maxZoom:18}).addTo(map);
-  var canvas=L.canvas({padding:.5,tolerance:6});
+  var map=L.map("map",{zoomControl:true,preferCanvas:true,worldCopyJump:true,scrollWheelZoom:true,maxZoom:19}).setView([39.5,-98.35],4);
+  // maxNativeZoom keeps Leaflet from requesting tiles beyond Esri's range (no "map data not yet available")
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",{attribution:'Tiles &copy; Esri &middot; Data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',maxNativeZoom:16,maxZoom:19}).addTo(map);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",{maxNativeZoom:16,maxZoom:19}).addTo(map);
   var layer=L.layerGroup().addTo(map);
   var OVERVIEW={US:[[39.5,-98.35],4],EU:[[50,10],4]};
-  // fade the hint once the user interacts with the map
   map.on("movestart zoomstart",function(){var h=document.getElementById("maphint");if(h)h.style.opacity="0";});
 
   var citySel=document.getElementById("city"),typesEl=document.getElementById("types"),legEl=document.getElementById("legend");
   var conf=document.getElementById("conf"),rad=document.getElementById("rad");
   conf.oninput=function(){document.getElementById("confVal").textContent=conf.value+"%";};
   rad.oninput=function(){document.getElementById("radVal").textContent=rad.value+" m";};
+
+  // teardrop pin, coloured per signal type, point anchored at the real location
+  function pinIcon(col,sel){
+    var svg='<svg class="pin" width="22" height="30" viewBox="0 0 22 30" xmlns="http://www.w3.org/2000/svg">'+
+      '<path d="M11 0C4.92 0 0 4.92 0 11c0 7.7 9.4 17.6 10.3 18.5a1 1 0 0 0 1.4 0C12.6 28.6 22 18.7 22 11 22 4.92 17.08 0 11 0z" fill="'+col+'" stroke="#0d0e1c" stroke-width="1.5"/>'+
+      '<circle cx="11" cy="11" r="4" fill="#0d0e1c"/></svg>';
+    return L.divIcon({className:"pin-wrap"+(sel?" sel":""),html:svg,iconSize:[22,30],iconAnchor:[11,30]});
+  }
 
   function buildTypeChips(){
     typesEl.innerHTML="";selectedTypes={};
@@ -323,7 +344,7 @@ input[type=range]{width:100%;accent-color:var(--veh)}
         citySel.appendChild(og);
       });
       if(defaultKey&&citySel.querySelector('option[value="'+defaultKey+'"]'))citySel.value=defaultKey;
-      // No auto-run: the page loads instantly; the user picks a city and hits "Run sample".
+      // No auto-run: the user picks a city and hits "Run sample".
     }).catch(function(){showErr(region==="EU"?"The Europe service is warming up — try again in a moment, or switch back to the US.":"Couldn't load the city list. The data service may be waking up — try again in a moment.");});
   }
 
@@ -336,8 +357,8 @@ input[type=range]{width:100%;accent-color:var(--veh)}
 
   function runQuery(){
     var val=citySel.value;if(!val)return;
-    hideErr();setLoading(true);
-    var body={city:val,minConfidence:parseInt(conf.value,10),clusterRadiusMeters:parseInt(rad.value,10),maxResults:1000,signalType:selectedTypeValue()};
+    hideErr();hideDetail();setLoading(true);
+    var body={city:val,minConfidence:parseInt(conf.value,10),clusterRadiusMeters:parseInt(rad.value,10),maxResults:MAX,signalType:selectedTypeValue()};
     if(region==="US")body.includeAccessibility=true;
     fetch(APIS[region]+"/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
       .then(function(r){if(!r.ok)return r.json().then(function(j){throw new Error(j.detail||("Error "+r.status));});return r.json();})
@@ -350,66 +371,81 @@ input[type=range]{width:100%;accent-color:var(--veh)}
   function showErr(m){var e=document.getElementById("err");e.textContent=m;e.style.display="block";}
   function hideErr(){document.getElementById("err").style.display="none";}
   function cityName(val){var o=citySel.querySelector('option[value="'+(window.CSS&&CSS.escape?CSS.escape(val):val)+'"]');return o?o.textContent:val;}
+  function roundSpeed(v){return (v==null||isNaN(+v))?null:Math.round(+v);}
+  function approachCount(r){return (r.approach_count!=null)?r.approach_count:((r.approaches&&r.approaches.length)?r.approaches.length:null);}
 
   function render(d){
     lastRecords=d.records||[];lastCity=cityName(citySel.value);
-    layer.clearLayers();markerById={};
+    layer.clearLayers();selMarker=null;hideDetail();
     var fmt=new Intl.NumberFormat("en-US");
     document.getElementById("count").innerHTML='<span>'+fmt.format(d.count)+'</span>';
     var sub=document.getElementById("sub");
     if(d.capped_to_sample)sub.textContent="Sample of "+fmt.format(d.total_found)+" intersections in "+lastCity+". Full set on request.";
     else sub.textContent="All "+fmt.format(d.count)+" intersections in "+lastCity+".";
-    var pts=[],listEl=document.getElementById("list");listEl.innerHTML="";
+    var pts=[];
     lastRecords.forEach(function(r,i){
       if(r.lat==null||r.lon==null)return;
       var col=colorFor(r.signal_type);
-      var m=L.circleMarker([r.lat,r.lon],{renderer:canvas,radius:4.5,weight:1,color:"#0d0e1c",fillColor:col,fillOpacity:.95});
-      m.on("click",function(){openDetail(r,m);setActive(i);});
-      m.addTo(layer);markerById[i]=m;pts.push([r.lat,r.lon]);
-      listEl.appendChild(rowFor(r,i,col));
+      var m=L.marker([r.lat,r.lon],{icon:pinIcon(col,false),riseOnHover:true});
+      m._rec=r;m._col=col;
+      m.on("click",function(){selectMarker(m);});
+      m.addTo(layer);pts.push([r.lat,r.lon]);
     });
-    if(pts.length)map.fitBounds(pts,{padding:[30,30],maxZoom:15});
+    if(pts.length)map.fitBounds(pts,{padding:[40,40],maxZoom:15});
     var has=lastRecords.length>0;
     document.getElementById("dlGeo").disabled=!has;document.getElementById("dlCsv").disabled=!has;
   }
 
-  function rowFor(r,i,col){
-    var row=document.createElement("div");row.className="row";row.dataset.i=i;
-    var cf=r.confidence&&typeof r.confidence.score==="number"?Math.round(r.confidence.score*100)+"%":"";
-    var street=(r.street_names&&r.street_names.length)?r.street_names.join(" · "):(r.nearest_street||"Unnamed junction");
-    row.innerHTML='<span class="mk" style="background:'+col+'"></span><div class="meta"><div class="st">'+labelFor(r.signal_type)+'</div><div class="sub2">'+escapeHtml(street)+'</div></div>'+(cf?'<div class="cf">'+cf+'</div>':'');
-    row.onclick=function(){var m=markerById[i];if(m){map.setView(m.getLatLng(),16);openDetail(r,m);}setActive(i);};
-    return row;
+  function selectMarker(m){
+    if(selMarker&&selMarker!==m){selMarker.setIcon(pinIcon(selMarker._col,false));}
+    selMarker=m;m.setIcon(pinIcon(m._col,true));
+    showDetail(m._rec,m._col);
   }
-  function setActive(i){Array.prototype.forEach.call(document.querySelectorAll(".row"),function(el){el.classList.toggle("active",el.dataset.i==i);});var a=document.querySelector('.row[data-i="'+i+'"]');if(a)a.scrollIntoView({block:"nearest"});}
 
-  function openDetail(r,m){
-    var col=colorFor(r.signal_type);
+  function showDetail(r,col){
+    var det=document.getElementById("detail");
     var kv=function(k,v){return v==null||v===""?"":'<div class="kv"><span>'+k+'</span><span>'+v+'</span></div>';};
     var tier=r.source_tier==="official+osm"?"official + OSM":(r.source_tier==="official"?"official":"OSM");
-    var html='<div class="pop"><h4>'+labelFor(r.signal_type)+'</h4><div class="pid">'+escapeHtml(r.intersection_id||"")+'</div>'+
-      '<div style="margin-bottom:8px"><span class="tag" style="background:'+col+'">'+labelFor(r.signal_type)+'</span></div>'+
+    var spd=roundSpeed(r.speed_limit_mph);
+    var ac=approachCount(r);
+    var body='<div class="dhead"><div><h4>'+labelFor(r.signal_type)+'</h4><div class="pid">'+escapeHtml(r.intersection_id||"")+'</div></div>'+
+      '<button class="dx" id="detailClose" aria-label="Close">✕</button></div>'+
+      '<div class="dbody">'+
+      '<span class="tag" style="background:'+col+'">'+labelFor(r.signal_type)+'</span>'+
       kv("Coordinates",(r.lat!=null&&r.lon!=null)?r.lat.toFixed(5)+", "+r.lon.toFixed(5):null)+
-      kv("Nearest street",(r.street_names&&r.street_names.length)?r.street_names.join(" · "):r.nearest_street)+
-      (region==="US"?kv("Approach arms",(r.approaches&&r.approaches.length)?r.approaches.length:r.approach_count):"")+
-      (region==="US"?kv("Speed limit",r.speed_limit_mph!=null?(r.speed_limit_mph+" mph"):null):"")+
+      kv("Nearest street",(r.street_names&&r.street_names.length)?escapeHtml(r.street_names.join(" · ")):escapeHtml(r.nearest_street||""))+
+      (region==="US"?kv("Approach arms",ac):"")+
+      (region==="US"?kv("Speed limit",spd!=null?(spd+" mph"):null):"")+
       (region==="US"?kv("Source",tier):"")+
       kv("Confidence",r.confidence&&r.confidence.score!=null?Math.round(r.confidence.score*100)+"%":null)+
       kv("OSM edited",r.osm_last_edited?String(r.osm_last_edited).slice(0,10):null)+
-      ((r.lat!=null&&r.lon!=null)?'<a class="gmaps" href="https://www.google.com/maps/search/?api=1&query='+r.lat+','+r.lon+'" target="_blank" rel="noopener">Open in Google Maps ↗</a>':'')+'</div>';
-    m.bindPopup(html,{maxWidth:290,autoPanPadding:[30,30]}).openPopup();
+      ((r.lat!=null&&r.lon!=null)?'<a class="gmaps" href="https://www.google.com/maps/search/?api=1&query='+r.lat+','+r.lon+'" target="_blank" rel="noopener">Open in Google Maps ↗</a>':'')+
+      '</div>';
+    det.innerHTML=body;
+    det.classList.add("on");
+    var c=document.getElementById("detailClose");if(c)c.onclick=hideDetail;
+  }
+  function hideDetail(){
+    var det=document.getElementById("detail");det.classList.remove("on");
+    if(selMarker){selMarker.setIcon(pinIcon(selMarker._col,false));selMarker=null;}
   }
   function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
 
   document.getElementById("dlGeo").onclick=function(){
-    var fc={type:"FeatureCollection",features:lastRecords.map(function(r){return {type:"Feature",geometry:{type:"Point",coordinates:[r.lon,r.lat]},properties:r};})};
+    var feats=lastRecords.filter(function(r){return r.lat!=null&&r.lon!=null;}).map(function(r){return {type:"Feature",geometry:{type:"Point",coordinates:[r.lon,r.lat]},properties:r};});
+    var fc={type:"FeatureCollection",features:feats};
     dl(JSON.stringify(fc,null,2),slugName()+"_sample.geojson","application/geo+json");};
   document.getElementById("dlCsv").onclick=function(){
     var cols=region==="US"
       ?["intersection_id","state_code","city_name","lat","lon","signal_type","approach_count","nearest_street","speed_limit_mph","source_tier"]
       :["intersection_id","country","city_name","lat","lon","signal_type","nearest_street"];
     var esc=function(v){v=v==null?"":String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
-    var rows=[cols.join(",")].concat(lastRecords.map(function(r){return cols.map(function(c){return esc(r[c]);}).join(",");}));
+    var rows=[cols.join(",")].concat(lastRecords.map(function(r){return cols.map(function(c){
+      var v=r[c];
+      if(c==="approach_count")v=approachCount(r);
+      if(c==="speed_limit_mph")v=roundSpeed(r.speed_limit_mph);
+      return esc(v);
+    }).join(",");}));
     dl(rows.join("\n"),slugName()+"_sample.csv","text/csv");};
   function slugName(){return (lastCity||"intersections").toLowerCase().replace(/[^a-z0-9]+/g,"_");}
   function dl(text,name,type){var b=new Blob([text],{type:type}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},2000);}
@@ -420,9 +456,8 @@ input[type=range]{width:100%;accent-color:var(--veh)}
       if(b.getAttribute("aria-pressed")==="true")return;
       region=b.getAttribute("data-r");
       Array.prototype.forEach.call(document.querySelectorAll("#region button"),function(x){x.setAttribute("aria-pressed",String(x===b));});
-      document.getElementById("cityLab").textContent=region==="US"?"Search a US city":"Search a European city";
-      // move the map to the region and clear the previous region's result
-      layer.clearLayers();document.getElementById("list").innerHTML="";
+      document.getElementById("cityLab").textContent="City";
+      layer.clearLayers();selMarker=null;hideDetail();
       document.getElementById("count").innerHTML="—";
       document.getElementById("sub").textContent="Pick a city and run a sample.";
       document.getElementById("dlGeo").disabled=true;document.getElementById("dlCsv").disabled=true;
@@ -432,7 +467,6 @@ input[type=range]{width:100%;accent-color:var(--veh)}
   });
 
   document.getElementById("run").onclick=runQuery;
-  citySel.onchange=runQuery;
   buildTypeChips();
   loadCities(defaults.US);
 })();
