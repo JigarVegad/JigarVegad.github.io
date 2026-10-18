@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MobilityMetric — signalized intersections from OpenStreetMap</title>
-<meta name="description" content="One clean record per real signalized intersection across 225 US cities and 271 European cities — extracted, deduplicated and classified from OpenStreetMap. Search any city and preview 1,000 real intersections on a live map.">
+<meta name="description" content="One clean record per real signalized intersection across 225 US cities and 271 European cities — extracted, deduplicated and classified from OpenStreetMap. Search any city and preview up to 500 real intersections on a live map.">
 <meta property="og:title" content="MobilityMetric — signalized intersections from OpenStreetMap">
-<meta property="og:description" content="One clean record per real intersection across the US and Europe. Search any city, see 1,000 real intersections on a live map, download GeoJSON or CSV.">
+<meta property="og:description" content="One clean record per real intersection across the US and Europe. Search any city, see up to 500 real intersections on a live map, download GeoJSON or CSV.">
 <meta property="og:type" content="website">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -283,7 +283,7 @@ footer{padding-block:34px;color:var(--faint);font-size:.86rem;border-top:1px sol
     <div class="stat"><div class="n tnum s-veh" data-to="170000" data-suffix="+">170,000+</div><div class="l">US intersections</div></div>
     <div class="stat"><div class="n tnum s-ped" data-to="496">496</div><div class="l">cities, US + Europe</div></div>
     <div class="stat"><div class="n tnum s-both" data-to="41" data-suffix="">41</div><div class="l">European countries</div></div>
-    <div class="stat"><div class="n tnum s-hawk" data-to="0" data-suffix="%">0%</div><div class="l">LA vs. LADOT count</div></div>
+    <div class="stat"><div class="n tnum s-hawk" data-to="4856">4,856</div><div class="l">LA signals · matches LADOT (~4,850)</div></div>
   </div>
 </section>
 
@@ -358,7 +358,7 @@ footer{padding-block:34px;color:var(--faint);font-size:.86rem;border-top:1px sol
     <div class="teaser">
       <div class="teaser-copy">
         <p class="eyebrow">Feel the data</p>
-        <h2>Search any city. See 1,000 real intersections.</h2>
+        <h2>Search any city. See up to 500 real intersections.</h2>
         <p class="lead">Pick a region and a city, run a free sample, and inspect every intersection on a live map — signal type, nearest street and confidence — then download it as GeoJSON or CSV.</p>
         <div class="hero-cta" style="margin-top:22px">
           <a class="btn btn-amber" href="signals.html">Open the live map →</a>
@@ -380,7 +380,7 @@ footer{padding-block:34px;color:var(--faint);font-size:.86rem;border-top:1px sol
       <div class="inner">
         <p class="eyebrow" style="color:#9fa3d6">Need the full set?</p>
         <h2>Every intersection, every city — on request.</h2>
-        <p>This page runs a capped 1,000-record sample of a larger, continuously-maintained dataset. Need full coverage, a specific region, or custom fields? Let's talk.</p>
+        <p>This page runs a capped 500-record sample of a larger, continuously-maintained dataset. Need full coverage, a specific region, or custom fields? Let's talk.</p>
         <div class="final-cta btns">
           <a class="btn btn-amber" href="signals.html">Open the live map</a>
           <button class="btn btn-ghost" id="reqBtn" style="background:#ffffff14;color:#fff;border-color:#ffffff30">Request the full dataset</button>
@@ -401,7 +401,7 @@ footer{padding-block:34px;color:var(--faint);font-size:.86rem;border-top:1px sol
   <div class="sheet">
     <button class="btn btn-ghost x" id="aboutClose" aria-label="Close">Close</button>
     <h2>About MobilityMetric</h2>
-    <p class="lead">One clean record per signalized intersection, extracted from OpenStreetMap and deduplicated into one point per real junction — 225 US cities across all 50 states and DC, plus 271 cities across 41 European countries. This page runs a live 1,000-record sample; the full dataset is maintained continuously.</p>
+    <p class="lead">One clean record per signalized intersection, extracted from OpenStreetMap and deduplicated into one point per real junction — 225 US cities across all 50 states and DC, plus 271 cities across 41 European countries. This page runs a live 500-record sample; the full dataset is maintained continuously.</p>
     <h3>How the data is built</h3>
     <ol class="steps">
       <li>Pull traffic-signal nodes from OpenStreetMap for the area.</li>
