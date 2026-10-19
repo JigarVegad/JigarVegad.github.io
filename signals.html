@@ -190,18 +190,8 @@ input[type=range]{width:100%;accent-color:var(--veh)}
       <div>
         <label class="lab">Signal types</label>
         <div class="types" id="types"></div>
+        <div class="hint" style="margin-top:6px">Toggle to filter the map — no reload needed.</div>
       </div>
-      <details class="adv">
-        <summary><span class="tw"></span>Advanced options</summary>
-        <div>
-          <div class="range-row"><span class="lab" style="margin:0">Minimum confidence</span><b id="confVal">0%</b></div>
-          <input type="range" id="conf" min="0" max="100" step="5" value="0">
-          <div class="hint">Drop intersections the data is less sure about.</div>
-          <div class="range-row"><span class="lab" style="margin:0">Cluster radius</span><b id="radVal">40 m</b></div>
-          <input type="range" id="rad" min="20" max="90" step="5" value="40">
-          <div class="hint">How close signals group into one intersection.</div>
-        </div>
-      </details>
       <button class="run" id="run">Run sample</button>
       <div class="err" id="err"></div>
       <div class="result-head">
@@ -289,7 +279,7 @@ input[type=range]{width:100%;accent-color:var(--veh)}
   function colorFor(t){return PALETTE[COLORKEY[t]||"unk"];}
   function labelFor(t){var all=TYPES.US.concat(TYPES.EU),f=all.filter(function(x){return x.v===t;});return f.length?f[0].label:(t||"signal").replace(/_/g," ");}
 
-  var region="US",selectedTypes={},lastRecords=[],lastCity="",selMarker=null;
+  var region="US",selectedTypes={},lastRecords=[],lastCity="",selMarker=null,allMarkers=[];
 
   var map=L.map("map",{zoomControl:true,preferCanvas:true,worldCopyJump:true,scrollWheelZoom:true,maxZoom:19}).setView([39.5,-98.35],4);
   // maxNativeZoom keeps Leaflet from requesting tiles beyond Esri's range (no "map data not yet available")
@@ -300,9 +290,6 @@ input[type=range]{width:100%;accent-color:var(--veh)}
   map.on("movestart zoomstart",function(){var h=document.getElementById("maphint");if(h)h.style.opacity="0";});
 
   var citySel=document.getElementById("city"),typesEl=document.getElementById("types"),legEl=document.getElementById("legend");
-  var conf=document.getElementById("conf"),rad=document.getElementById("rad");
-  conf.oninput=function(){document.getElementById("confVal").textContent=conf.value+"%";};
-  rad.oninput=function(){document.getElementById("radVal").textContent=rad.value+" m";};
 
   // teardrop pin, coloured per signal type, point anchored at the real location
   function pinIcon(col,sel){
@@ -324,6 +311,7 @@ input[type=range]{width:100%;accent-color:var(--veh)}
         var count=Object.keys(selectedTypes).filter(function(k){return selectedTypes[k];}).length;
         if(on&&count===1)return;
         selectedTypes[t.v]=!on;b.setAttribute("aria-pressed",String(!on));
+        redraw(false);  // client-side filter — no server call
       };
       typesEl.appendChild(b);
     });
@@ -348,19 +336,12 @@ input[type=range]{width:100%;accent-color:var(--veh)}
     }).catch(function(){showErr(region==="EU"?"The Europe service is warming up — try again in a moment, or switch back to the US.":"Couldn't load the city list. The data service may be waking up — try again in a moment.");});
   }
 
-  function selectedTypeValue(){
-    var keys=Object.keys(selectedTypes),on=keys.filter(function(k){return selectedTypes[k];});
-    var all=on.length===keys.length;
-    if(region==="US")return all?["all"]:on;
-    return all?"all":on[0];
-  }
+  function typeSelected(r){return !!selectedTypes[r.signal_type];}
 
   function runQuery(){
     var val=citySel.value;if(!val)return;
     hideErr();hideDetail();setLoading(true);
-    var body={city:val,minConfidence:parseInt(conf.value,10),clusterRadiusMeters:parseInt(rad.value,10),maxResults:MAX,signalType:selectedTypeValue()};
-    if(region==="US")body.includeAccessibility=true;
-    fetch(APIS[region]+"/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    fetch(APIS[region]+"/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({city:val})})
       .then(function(r){if(!r.ok)return r.json().then(function(j){throw new Error(j.detail||("Error "+r.status));});return r.json();})
       .then(function(d){render(d);})
       .catch(function(e){showErr(e.message||"Something went wrong running the sample.");})
@@ -376,24 +357,35 @@ input[type=range]{width:100%;accent-color:var(--veh)}
 
   function render(d){
     lastRecords=d.records||[];lastCity=cityName(citySel.value);
-    layer.clearLayers();selMarker=null;hideDetail();
+    selMarker=null;hideDetail();
     var fmt=new Intl.NumberFormat("en-US");
     document.getElementById("count").innerHTML='<span>'+fmt.format(d.count)+'</span>';
     var sub=document.getElementById("sub");
     if(d.capped_to_sample)sub.textContent="Sample of "+fmt.format(d.total_found)+" intersections in "+lastCity+". Full set on request.";
     else sub.textContent="All "+fmt.format(d.count)+" intersections in "+lastCity+".";
-    var pts=[];
-    lastRecords.forEach(function(r,i){
+    // build one marker per record once; redraw() shows the currently-selected types
+    allMarkers=[];
+    lastRecords.forEach(function(r){
       if(r.lat==null||r.lon==null)return;
       var col=colorFor(r.signal_type);
       var m=L.marker([r.lat,r.lon],{icon:pinIcon(col,false),riseOnHover:true});
       m._rec=r;m._col=col;
       m.on("click",function(){selectMarker(m);});
-      m.addTo(layer);pts.push([r.lat,r.lon]);
+      allMarkers.push(m);
     });
-    if(pts.length)map.fitBounds(pts,{padding:[40,40],maxZoom:15});
+    redraw(true);
     var has=lastRecords.length>0;
     document.getElementById("dlGeo").disabled=!has;document.getElementById("dlCsv").disabled=!has;
+  }
+
+  function redraw(fit){
+    hideDetail();
+    layer.clearLayers();
+    var pts=[];
+    allMarkers.forEach(function(m){
+      if(typeSelected(m._rec)){m.setIcon(pinIcon(m._col,false));m.addTo(layer);pts.push(m.getLatLng());}
+    });
+    if(fit&&pts.length)map.fitBounds(pts,{padding:[40,40],maxZoom:15});
   }
 
   function selectMarker(m){
@@ -431,8 +423,9 @@ input[type=range]{width:100%;accent-color:var(--veh)}
   }
   function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
 
+  function visibleRecords(){return lastRecords.filter(typeSelected);}
   document.getElementById("dlGeo").onclick=function(){
-    var feats=lastRecords.filter(function(r){return r.lat!=null&&r.lon!=null;}).map(function(r){return {type:"Feature",geometry:{type:"Point",coordinates:[r.lon,r.lat]},properties:r};});
+    var feats=visibleRecords().filter(function(r){return r.lat!=null&&r.lon!=null;}).map(function(r){return {type:"Feature",geometry:{type:"Point",coordinates:[r.lon,r.lat]},properties:r};});
     var fc={type:"FeatureCollection",features:feats};
     dl(JSON.stringify(fc,null,2),slugName()+"_sample.geojson","application/geo+json");};
   document.getElementById("dlCsv").onclick=function(){
@@ -440,7 +433,7 @@ input[type=range]{width:100%;accent-color:var(--veh)}
       ?["intersection_id","state_code","city_name","lat","lon","signal_type","approach_count","nearest_street","speed_limit_mph","source_tier"]
       :["intersection_id","country","city_name","lat","lon","signal_type","nearest_street"];
     var esc=function(v){v=v==null?"":String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
-    var rows=[cols.join(",")].concat(lastRecords.map(function(r){return cols.map(function(c){
+    var rows=[cols.join(",")].concat(visibleRecords().map(function(r){return cols.map(function(c){
       var v=r[c];
       if(c==="approach_count")v=approachCount(r);
       if(c==="speed_limit_mph")v=roundSpeed(r.speed_limit_mph);
@@ -457,7 +450,7 @@ input[type=range]{width:100%;accent-color:var(--veh)}
       region=b.getAttribute("data-r");
       Array.prototype.forEach.call(document.querySelectorAll("#region button"),function(x){x.setAttribute("aria-pressed",String(x===b));});
       document.getElementById("cityLab").textContent="City";
-      layer.clearLayers();selMarker=null;hideDetail();
+      layer.clearLayers();selMarker=null;hideDetail();allMarkers=[];lastRecords=[];
       document.getElementById("count").innerHTML="—";
       document.getElementById("sub").textContent="Pick a city and run a sample.";
       document.getElementById("dlGeo").disabled=true;document.getElementById("dlCsv").disabled=true;
